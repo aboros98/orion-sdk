@@ -52,9 +52,9 @@ async def optimize_planning_prompt(
     print(default_system_prompt)
     print("-" * 100)
     result = await optimiser_agent(prompt=combined_prompt)
-    print(result.response)
+    print(result)
 
-    return result.response.strip()
+    return result.strip()
 
 
 class PlanningAgent:
@@ -169,7 +169,7 @@ class PlanningAgent:
             if not self.planning_agent:
                 raise RuntimeError("Planning agent not initialized. Call `create` to instantiate.")
             response = await self.planning_agent(prompt=prompt)
-            full_response = response.response
+            full_response = response
             
             # Extract just the plan portion for execution
             plan_match = re.search(r'<plan>\s*(.*?)\s*</plan>', full_response, re.DOTALL)
@@ -227,7 +227,7 @@ class PlanningAgent:
             if not self.revision_agent:
                 raise RuntimeError("Revision agent not initialized. Call `create` to instantiate.")
             response = await self.revision_agent(prompt=prompt)
-            full_response = response.response
+            full_response = response
             
             # Extract revised plan
             plan_match = re.search(r'<revised_plan>\s*(.*?)\s*</revised_plan>', full_response, re.DOTALL)

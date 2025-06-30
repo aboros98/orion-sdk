@@ -1,4 +1,4 @@
-from .nodes import LLMNode, BaseNode, ToolNode, MemoryReaderNode, OrchestratorNode, LoopNode, HumanInTheLoopNode, NodeOutputRetrievalNode
+from .nodes import LLMNode, BaseNode, ToolNode, MemoryReaderNode, OrchestratorNode, LoopNode, HumanInTheLoopNode
 from .edges import Edge, ConditionalEdge, BaseEdge
 from typing import Any, Callable, Dict, Optional, List, Union
 import logging
@@ -162,11 +162,6 @@ class WorkflowGraph:
             self.nodes[hil_node_name] = HumanInTheLoopNode(hil_node_name)
             logger.info(f"Added HumanInTheLoopNode: '{hil_node_name}'")
 
-        # 2. Connect orchestrator to HumanInTheLoopNode **only once**.
-        #    We intentionally do NOT create the edge back from the HIL node to the orchestrator
-        #    to prevent the orchestrator from being automatically recalled after the
-        #    clarification is gathered. This allows the workflow to pause after the
-        #    human input so the calling code can decide how to proceed.
         self.add_edge(orchestrator_node_name, hil_node_name)
         logger.info(f"Connected orchestrator '{orchestrator_node_name}' -> HumanInTheLoopNode '{hil_node_name}' (no automatic return)")
         
@@ -175,18 +170,18 @@ class WorkflowGraph:
             "type": "function",
             "function": {
                 "name": hil_node_name,
-                "description": "When a user's request is ambiguous, vague, or incomplete, use this tool to ask for clarification. This is your way to talk back to the user.",
+                "description": "DO NOT USE THIS TOOL unless the user's task specifically requests asking for user input, clarification, or confirmation. This tool interrupts task execution to ask the user questions. If the task does not explicitly mention getting user input, then DO NOT use this tool - instead, make reasonable assumptions and complete the task with other available tools. Only use this when the task itself says to ask the user something.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "original_input": {
                             "type": "string",
-                            "description": "The original, ambiguous user request that needs clarification."
+                            "description": "The original user request that explicitly requires human input."
                         },
                         "clarification_prompt": {
                             "type": "string",
                             "description": (
-                                "A courteous question presented to the user explaining why the extra information is needed. "
+                                "A courteous question or request for confirmation presented to the user. "
                                 "If multiple details are required, format the prompt as an enumerated list so it is easy for the user to respond to each item."
                             )
                         }
@@ -202,63 +197,6 @@ class WorkflowGraph:
         else:
             orchestrator.tools.append(clarification_tool)
             logger.info(f"Registered tool '{hil_node_name}' with the agent for '{orchestrator_node_name}'.")
-
-    def add_memory_retrieve_node(self, orchestrator_node_name: str):
-        """
-        Adds a NodeOutputRetrievalNode and connects it cyclically to an orchestrator.
-        It also dynamically registers the memory retrieval node as a tool for the agent.
-        This creates a cycle: orchestrator -> memory_retrieve_node -> orchestrator.
-
-        Args:
-            orchestrator_node_name (str): The name of the orchestrator node.
-        """
-        if orchestrator_node_name not in self.nodes:
-            raise ValueError(f"Orchestrator node '{orchestrator_node_name}' not found.")
-
-        orchestrator = self.nodes[orchestrator_node_name].node_func
-        
-        if not hasattr(orchestrator, 'tools'):
-            raise TypeError("The 'agent' object must have a 'tools' attribute that is a list.")
-
-        # 1. Create and add the NodeOutputRetrievalNode
-        memory_retrieve_node_name = f"{orchestrator_node_name}_memory_retrieve"
-    
-        if memory_retrieve_node_name in self.nodes:
-            logger.warning(f"NodeOutputRetrievalNode '{memory_retrieve_node_name}' already exists.")
-        else:
-            self.nodes[memory_retrieve_node_name] = NodeOutputRetrievalNode(memory_retrieve_node_name)
-            logger.info(f"Added NodeOutputRetrievalNode: '{memory_retrieve_node_name}'")
-
-        # 2. Connect orchestrator to NodeOutputRetrievalNode and back to create a cycle
-        self.add_edge(orchestrator_node_name, memory_retrieve_node_name)
-        self.add_edge(memory_retrieve_node_name, orchestrator_node_name)
-        logger.info(f"Created cycle: '{orchestrator_node_name}' -> '{memory_retrieve_node_name}' -> '{orchestrator_node_name}'")
-        
-        # 3. Define the tool for the agent and register it
-        memory_retrieve_tool = {
-            "type": "function",
-            "function": {
-                "name": memory_retrieve_node_name,
-                "description": "Retrieve the output from a previously executed node in the workflow. Use this to access results from earlier steps.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "node_name": {
-                            "type": "string",
-                            "description": "The name of the node whose output you want to retrieve."
-                        }
-                    },
-                    "required": ["node_name"]
-                }
-            }
-        }
-
-        # Check if the tool is already registered
-        if any(tool.get("function", {}).get("name") == memory_retrieve_node_name for tool in orchestrator.tools):
-            logger.warning(f"Tool '{memory_retrieve_node_name}' is already registered with the agent.")
-        else:
-            orchestrator.tools.append(memory_retrieve_tool)
-            logger.info(f"Registered tool '{memory_retrieve_node_name}' with the agent for '{orchestrator_node_name}'.")
 
     def compile(self, event_store=None, workflow_id=None) -> CompiledGraph:
         """Compile the execution graph for execution."""

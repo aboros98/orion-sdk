@@ -117,7 +117,12 @@ class CompiledGraph:
                 
                 # Store result in memory UNLESS the node is an orchestrator (orchestrators are read-only)
                 if not isinstance(self.nodes[current_node], OrchestratorNode):
-                    self.execution_state.add_exec_step(current_node, current_input, result)
+                    self.execution_state.add_exec_step(
+                        current_node, 
+                        current_input, 
+                        result,
+                        solved_task=initial_input
+                    )
                 else:
                     logger.debug(f"Skipping memory write for orchestrator node '{current_node}'")
                 execution_count += 1

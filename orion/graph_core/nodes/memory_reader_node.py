@@ -1,7 +1,7 @@
 from typing import Callable, Union, List, Optional
 from types import AsyncGeneratorType
 from .base_node import BaseNode
-from orion.agent_core.models import Response, ToolCall
+from orion.agent_core.models import ToolCall
 from orion.memory_core.execution_memory.execution_state import ExecutionMemory
 import logging
 
@@ -94,9 +94,8 @@ Current input:
                 async for chunk in func_output:
                     print(chunk, end="", flush=True)
                     full_response += chunk
+
                 func_output = full_response
-            elif isinstance(func_output, Response):
-                func_output = func_output.response
 
             return func_output
 

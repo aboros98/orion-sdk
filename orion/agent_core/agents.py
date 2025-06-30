@@ -3,7 +3,7 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from .config import LLMConfig
-from .models import Response, ToolCall
+from .models import ToolCall
 from .llm_interface import get_response
 
 
@@ -67,7 +67,7 @@ def build_agent(
         exponential_backoff_retry=exponential_backoff_retry,
     )
 
-    async def agent(prompt: str) -> Union[Response, ToolCall, AsyncIterator[str]]:
+    async def agent(prompt: str) -> Union[str, ToolCall, AsyncIterator[str]]:
         """
         Pre-configured agent that only needs a prompt.
 
@@ -76,7 +76,7 @@ def build_agent(
             execution_memory: Optional execution memory
 
         Returns:
-            Union[Response, ToolCall]: The LLM response
+            Union[str, ToolCall]: The LLM response
         """
         if not prompt.strip():
             raise ValueError("Prompt cannot be empty")

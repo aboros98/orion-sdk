@@ -1,7 +1,6 @@
 from typing import Callable
 from types import AsyncGeneratorType
 from .base_node import BaseNode
-from orion.agent_core.models import Response
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,11 +44,10 @@ class LLMNode(BaseNode):
                 async for chunk in func_output:
                     print(chunk, end="", flush=True)
                     full_response += chunk
-                func_output = full_response
-            elif isinstance(func_output, Response):
-                func_output = func_output.response
 
-            return str(func_output)
+                func_output = full_response
+
+            return func_output
 
         except Exception as e:
             logger.error(f"LLMNode '{self.name}' failed to compute: {e}")

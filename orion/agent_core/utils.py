@@ -21,9 +21,9 @@ async def enhance_description_with_llm(func_name: str, description: str) -> str:
                                        system_prompt=DESCRIPTION_ENHANCER_SYSTEM_PROMPT)
 
     # Pass the function details as user input
-    enhanced_description = await description_enhancer(f"Function name: {func_name}\nFunction description: {description}")
+    enhanced_description = await description_enhancer(prompt=f"Function name: {func_name}\nFunction description: {description}")
 
-    return enhanced_description.response
+    return enhanced_description
 
 async def function_to_schema(func: Callable, enhance_description: bool = False, func_name: Optional[str] = None) -> dict:
     if not callable(func):

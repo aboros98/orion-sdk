@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 
 from .config import LLMConfig
-from .models import ToolCall, Response
+from .models import ToolCall
 from .client import get_or_create_client
 from .utils import format_messages
 from .exponential_retry import with_retry
@@ -15,19 +15,12 @@ from .exponential_retry import with_retry
 logger = logging.getLogger(__name__)
 
 
-def log_messages_to_file(messages: List[Dict[str, str]], response: Any, log_dir: str = "debug_logs"):
+def log_messages_to_file(messages: List[Dict[str, str]], log_dir: str = "debug_logs"):
     """Log messages to a single debug file with timestamp."""
     os.makedirs(log_dir, exist_ok=True)
     
     filename = f"{log_dir}/llm_messages.jsonl"  # JSON Lines format
 
-    if response.choices[0].message.tool_calls:
-        response = response.choices[0].message.tool_calls[0]
-    else:
-        response = response.choices[0].message.content
-
-    messages.append({"role": "assistant", "content": response})
-    
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "messages": messages
@@ -63,9 +56,9 @@ async def get_response(
     tools: Optional[List[Dict[str, Any]]] = None,
     tool_choice: Literal["auto", "none", "required"] = "auto",
     schema: Optional[type[BaseModel]] = None,
-) -> Union[Response, ToolCall, AsyncIterator[str]]:
+) -> Union[str, ToolCall, AsyncIterator[str]]:
     """
-    Get a response from the LLM with optional ReAct thoughts.
+    Get a response from the LLM.
 
     Args:
         config: LLM configuration parameters
@@ -77,7 +70,7 @@ async def get_response(
         schema: Optional schema to use for parsing the response
 
     Returns:
-        Union[Response, ToolCall, AsyncIterator[str]]: The LLM's response with optional thoughts
+        Union[str, ToolCall, AsyncIterator[str]]: The LLM's response
 
     Raises:
         Exception: If the API call fails
@@ -102,7 +95,7 @@ async def get_response(
             **config.to_dict(),
         )
 
-        log_messages_to_file(messages, response)
+        log_messages_to_file(messages)
 
         if schema:
             return response
@@ -122,7 +115,7 @@ async def get_response(
                 arguments=json.loads(tool_call_data.function.arguments),
             )
         else:
-            return Response(response=response.choices[0].message.content)
+            return response.choices[0].message.content
 
     except Exception as e:
         logger.error(f"Failed to get LLM response: {e}")

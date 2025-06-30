@@ -1,7 +1,7 @@
 from typing import Callable
 from types import AsyncGeneratorType
 from .base_node import BaseNode
-from orion.agent_core.models import Response, ToolCall
+from orion.agent_core.models import ToolCall
 import logging
 
 logger = logging.getLogger(__name__)
@@ -62,23 +62,17 @@ class OrchestratorNode(BaseNode):
         Returns ToolCall object for routing decisions.
         """
         try:
+            assert self.execution_memory is not None, "Execution memory is not set"
+            
             # Only pass the current task as user input, no execution history
-            input_context = str(input_data) if input_data is not None else ""
+            memory_summary = self.execution_memory.get_summary_for_orchestrator()
+            input_context = input_data if input_data is not None else ""
+            input_context = f"Memory summary: {memory_summary}\nTask: {input_context}"
             
             logger.debug(f"Orchestrator '{self.name}' processing task: {input_context}")
             
             # Execute orchestrator function with only the task
             func_output = await self.node_func(prompt=input_context)
-
-            # Handle different output types
-            if isinstance(func_output, AsyncGeneratorType):
-                full_response = ""
-                async for chunk in func_output:
-                    print(chunk, end="", flush=True)
-                    full_response += chunk
-                func_output = full_response
-            elif isinstance(func_output, Response):
-                func_output = func_output.response
 
             # Ensure we return a ToolCall object
             if isinstance(func_output, ToolCall):

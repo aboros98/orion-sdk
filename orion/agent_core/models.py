@@ -13,15 +13,3 @@ class ToolCall(BaseModel):
 
     tool_name: str
     arguments: Dict[str, Any]
-
-
-class Response(BaseModel):
-    """
-    Response from the LLM.
-
-    Attributes:
-        thought: Optional reasoning thought process
-        response: The text response from the LLM
-    """
-
-    response: str

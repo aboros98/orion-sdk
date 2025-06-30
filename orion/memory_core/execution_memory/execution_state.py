@@ -25,11 +25,18 @@ class ExecutionMemory:
     ) -> None:
         self.name = name  # Add name attribute for node behavior
         self._exec_steps: List[ExecutionStep] = []
-        self._node_counters: Dict[str, int] = {}  # Track execution count per node
         
         # Event sourcing integration
         self.event_store = event_store
         self.workflow_id = workflow_id or str(uuid.uuid4())
+        
+        # Summary tracking for completed work and solved tasks
+        self.summary = {
+            "solved_tasks": [],
+            "completed_nodes": [],
+            "available_outputs": {},
+            "total_completed": 0
+        }
         
         logger.debug(f"Initialized ExecutionMemory with workflow_id: {self.workflow_id}")
 
@@ -54,7 +61,7 @@ class ExecutionMemory:
             self.add_exec_step(
                 node_name=self.name,
                 node_input=input_str,
-                node_output=result,
+                node_output=result
             )
             
             logger.debug(f"ExecutionMemory memory node '{self.name}' stored: {input_str[:100]}...")
@@ -69,26 +76,33 @@ class ExecutionMemory:
         self._exec_steps.clear()
 
     def add_exec_step(
-        self, node_name: str, node_input: str, node_output: str
+        self, node_name: str, node_input: str, node_output: str, solved_task: Optional[str] = None
     ) -> None:
-        """Add an execution step to the memory with auto-numbering."""
-        # Skip numbering for special nodes
-        if node_name in ["__start__", "__end__", "execution_memory"]:
-            numbered_node_name = node_name
-        else:
-            # Auto-number the node execution
-            if node_name not in self._node_counters:
-                self._node_counters[node_name] = 0
-            self._node_counters[node_name] += 1
-            numbered_node_name = f"{node_name}_{self._node_counters[node_name]}"
-        
-        # Store the execution step with numbered name
+        """Add an execution step to the memory."""
+        # Store the execution step
         step = ExecutionStep(
-            node_name=numbered_node_name,
+            node_name=node_name,
             node_input=node_input,
             node_output=node_output,
         )
         self._exec_steps.append(step)
+        
+        # Update summary for non-system nodes
+        if node_name not in ["__start__", "__end__"]:
+            # Track completed node
+            if node_name not in self.summary["completed_nodes"]:
+                self.summary["completed_nodes"].append(node_name)
+            
+            # Track solved task if provided
+            if solved_task and solved_task not in self.summary["solved_tasks"]:
+                self.summary["solved_tasks"].append(solved_task)
+            
+            # Store brief output description
+            output_desc = str(node_output)[:50] + "..." if len(str(node_output)) > 50 else str(node_output)
+            self.summary["available_outputs"][node_name] = output_desc
+            
+            # Update total count
+            self.summary["total_completed"] = len(self.summary["completed_nodes"])
         
         # Record completion event if event store is available
         if self.event_store:
@@ -122,7 +136,7 @@ class ExecutionMemory:
         for step in reversed(self._exec_steps):
             if step.node_name == node_name:
                 return step.node_output
-
+        return None
 
     def get_node_input(self, node_name: str) -> Optional[Union[str, ToolCall]]:
         """Get the input for a specific node (most recent execution)."""
@@ -195,3 +209,28 @@ class ExecutionMemory:
             'exec_steps': [self._serialize_execution_step(step) for step in self._exec_steps],
             'total_steps': len(self._exec_steps)
         }
+
+    def get_summary_for_orchestrator(self) -> str:
+        """Return formatted summary for orchestrator context."""
+        if not self.summary["completed_nodes"]:
+            return "No previous work completed."
+        
+        lines = ["Previous work completed:"]
+        
+        # Show solved tasks
+        if self.summary["solved_tasks"]:
+            lines.append("\nTasks solved:")
+            for task in self.summary["solved_tasks"]:
+                lines.append(f"✓ {task}")
+        
+        # Show available data
+        lines.append("\nData available:")
+        for node_name in self.summary["completed_nodes"]:
+            output_desc = self.summary["available_outputs"].get(node_name, "output ready")
+            lines.append(f"- {node_name}: {output_desc}")
+        
+        return "\n".join(lines)
+    
+    def get_summary_dict(self) -> dict:
+        """Return raw summary dictionary."""
+        return self.summary.copy()

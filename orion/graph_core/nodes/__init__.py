@@ -7,7 +7,6 @@ from .memory_reader_node import MemoryReaderNode
 from .orchestrator_node import OrchestratorNode
 from .loop_node import LoopNode
 from .human_in_the_loop_node import HumanInTheLoopNode
-from .node_output_retrieval_node import NodeOutputRetrievalNode
 
 __all__ = [
     "BaseNode",
@@ -16,6 +15,5 @@ __all__ = [
     "MemoryReaderNode",
     "OrchestratorNode",
     "LoopNode",
-    "HumanInTheLoopNode",
-    "NodeOutputRetrievalNode"
+    "HumanInTheLoopNode"
 ]
