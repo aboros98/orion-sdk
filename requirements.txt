@@ -1,0 +1,13 @@
+pydantic
+openai
+httpx[http2]
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
+pytest-html
+flake8
+black
+mypy
+pymongo>=4.0.0
+python-dotenv
