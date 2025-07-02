@@ -160,8 +160,14 @@ class PlanningAgent:
         """Create initial strategic plan with ReAct-style reasoning"""
         graph_capabilities = self.graph_inspector.get_available_capabilities()
         
+        # Get execution summary for references
+        execution_summary = "No previous work completed."
+        if hasattr(self, '_execution_memory') and self._execution_memory:
+            execution_summary = self._execution_memory.get_summary_for_orchestrator()
+        
         prompt = PLAN_CREATION_PROMPT_TEMPLATE.format(
             graph_capabilities=graph_capabilities,
+            execution_summary=execution_summary,
             user_request=user_request
         )
 
@@ -206,11 +212,8 @@ class PlanningAgent:
         if not force and self.tasks_since_revision < self.revision_frequency:
             return current_plan
             
-        # Format execution memory in the exact format the agent expects
-        memory_entries = []
-        for entry in execution_memory.get_entries_for_nodes():
-            if entry.node_name not in ["__start__", "__end__"]:
-                memory_entries.append(f"Node: {entry.node_name}\nOutput: {entry.node_output}\n---")
+        # Get memory entries with summaries (except for user input which remains full)
+        memory_entries = execution_memory.get_planning_memory_entries()
         
         execution_history = "\n".join(memory_entries) if memory_entries else "No execution history yet."
         
@@ -309,3 +312,7 @@ class PlanningAgent:
     def _create_fallback_plan(self, user_request: str) -> str:
         """Create a fallback plan if planning fails"""
         return FALLBACK_PLAN_TEMPLATE.format(user_request=user_request)
+
+    def set_execution_memory(self, execution_memory: ExecutionMemory) -> None:
+        """Set the execution memory for reference support."""
+        self._execution_memory = execution_memory

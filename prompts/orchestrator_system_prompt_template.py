@@ -29,7 +29,7 @@ Every routing decision you make directly affects:
 ### Step 3: Apply Routing Logic
 ```
 IF task is duplicate AND no updates requested:
-    → Route to MemoryReaderNode to retrieve existing results
+    → Route to memory-enabled LLM node to retrieve existing results
 
 ELSE IF sufficient data exists for synthesis/final output:
     → Route to synthesis/generation tool using available data

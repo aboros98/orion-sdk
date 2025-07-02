@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 import logging
 import time
 
-from .nodes import BaseNode, MemoryReaderNode, OrchestratorNode
+from .nodes import BaseNode, OrchestratorNode
 from .edges import BaseEdge, ConditionalEdge, Edge
 from orion.memory_core import ExecutionMemory
 from orion.agent_core.models import ToolCall
@@ -117,11 +117,14 @@ class CompiledGraph:
                 
                 # Store result in memory UNLESS the node is an orchestrator (orchestrators are read-only)
                 if not isinstance(self.nodes[current_node], OrchestratorNode):
+                    # Determine node type based on class name
+                    node_type = self._get_node_type(self.nodes[current_node])
                     self.execution_state.add_exec_step(
                         current_node, 
                         current_input, 
                         result,
-                        solved_task=initial_input
+                        solved_task=initial_input,
+                        node_type=node_type
                     )
                 else:
                     logger.debug(f"Skipping memory write for orchestrator node '{current_node}'")
@@ -279,8 +282,8 @@ class CompiledGraph:
     def _connect_memory_enabled_nodes(self):
         """Connect memory-enabled nodes to ExecutionMemory."""        
         for node_name, node in self.nodes.items():
-            if isinstance(node, (OrchestratorNode, MemoryReaderNode)):
-                node.set_execution_memory(self.execution_state)
+            if (isinstance(node, OrchestratorNode) or hasattr(node, 'is_memory_reader')) and hasattr(node, 'set_execution_memory'):
+                node.set_execution_memory(self.execution_state)  # type: ignore
                 logger.debug(f"Connected {type(node).__name__} '{node_name}' to ExecutionMemory")
 
     def visualize(self) -> str:
@@ -293,7 +296,7 @@ class CompiledGraph:
             node_type = type(node).__name__
             if isinstance(node, OrchestratorNode):
                 lines.append(f"  {name} ({node_type}) [ORCHESTRATOR]")
-            elif isinstance(node, MemoryReaderNode):
+            elif hasattr(node, 'is_memory_reader'):
                 lines.append(f"  {name} ({node_type}) [MEMORY_READER]")
             else:
                 lines.append(f"  {name} ({node_type})")
@@ -311,3 +314,7 @@ class CompiledGraph:
                     lines.append(f"  {source} -> {targets} [CONDITIONAL]")
         
         return "\n".join(lines)
+
+    def _get_node_type(self, node: BaseNode) -> str:
+        """Helper method to determine the node type based on its class name."""
+        return str(type(node).__name__)

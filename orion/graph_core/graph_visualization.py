@@ -1,6 +1,6 @@
 from .workflow import WorkflowGraph
 from .edges import Edge, ConditionalEdge
-from .nodes import LLMNode, ToolNode, MemoryReaderNode, OrchestratorNode, LoopNode
+from .nodes import LLMNode, ToolNode, OrchestratorNode, LoopNode
 from orion.memory_core import ExecutionMemory
 import os
 import webbrowser
@@ -29,14 +29,14 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     # Define node shapes based on node type with clean styling (excluding memory nodes)
     for node_name, node in graph.nodes.items():
         # Skip memory nodes as they will be in isolated subgraph
-        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not isinstance(node, MemoryReaderNode)):
+        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not hasattr(node, 'is_memory_reader')):
             continue
             
         if node_name == "__start__":
             lines.append(f"    {node_name}([\"{node_name}\"]):::startNode")
         elif node_name == "__end__":
             lines.append(f"    {node_name}([\"{node_name}\"]):::endNode")
-        elif isinstance(node, MemoryReaderNode):
+        elif hasattr(node, 'is_memory_reader'):
             # Special hexagon shape for memory reader nodes
             lines.append("    " + node_name + "{\"" + node_name + "\"}:::memoryReaderNode")
         elif isinstance(node, OrchestratorNode):
@@ -66,7 +66,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     # Handle explicit memory nodes in isolated subgraph
     explicit_memory_nodes = []
     for node_name, node in graph.nodes.items():
-        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not isinstance(node, MemoryReaderNode)):
+        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not hasattr(node, 'is_memory_reader')):
             explicit_memory_nodes.append((node_name, node))
     
     if explicit_memory_nodes:
@@ -126,22 +126,22 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     if has_memory_functionality and not _has_explicit_memory_node(graph):
         # Nodes that read from memory
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (MemoryReaderNode, OrchestratorNode, LoopNode)):
+            if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
         
         # Nodes that write to memory (processing nodes except orchestrators)
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (LLMNode, ToolNode, MemoryReaderNode, LoopNode)):
+            if isinstance(node, (LLMNode, ToolNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
                 if node_name not in ["__start__", "__end__"]:
                     lines.append(f"    {node_name} -->|write| {memory_node_name}")
     elif _has_explicit_memory_node(graph):
         # Handle explicit memory nodes
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (MemoryReaderNode, OrchestratorNode, LoopNode)):
+            if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
         
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (LLMNode, ToolNode, MemoryReaderNode, LoopNode)):
+            if isinstance(node, (LLMNode, ToolNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
                 if node_name not in ["__start__", "__end__"] and node_name != memory_node_name:
                     lines.append(f"    {node_name} -->|write| {memory_node_name}")
 
@@ -151,7 +151,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
 def _has_memory_functionality(graph: WorkflowGraph) -> bool:
     """Check if the graph has any memory-related functionality."""
     for node_name, node in graph.nodes.items():
-        if isinstance(node, (MemoryReaderNode, OrchestratorNode, LoopNode)):
+        if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
             return True
         if 'memory' in node_name.lower():
             return True
@@ -163,7 +163,7 @@ def _has_explicit_memory_node(graph: WorkflowGraph) -> bool:
     for node_name, node in graph.nodes.items():
         if isinstance(node, ExecutionMemory):
             return True
-        if 'memory' in node_name.lower() and not isinstance(node, MemoryReaderNode):
+        if 'memory' in node_name.lower() and not hasattr(node, 'is_memory_reader'):
             return True
     return False
 

@@ -1,4 +1,4 @@
-from .nodes import LLMNode, BaseNode, ToolNode, MemoryReaderNode, OrchestratorNode, LoopNode, HumanInTheLoopNode
+from .nodes import LLMNode, BaseNode, ToolNode, OrchestratorNode, LoopNode, HumanInTheLoopNode
 from .edges import Edge, ConditionalEdge, BaseEdge
 from typing import Any, Callable, Dict, Optional, List, Union
 import logging
@@ -65,7 +65,7 @@ class WorkflowGraph:
         if not callable(llm_function):
             raise ValueError("llm_function must be callable")
 
-        memory_reader = MemoryReaderNode(node_name, llm_function, memory_filter_nodes)
+        memory_reader = LLMNode(node_name, llm_function, memory_filter_nodes, _enable_memory=True)
         self.nodes[node_name] = memory_reader
         
         logger.info(f"Memory reader node '{node_name}' added with filter: {memory_filter_nodes or 'all nodes'}")

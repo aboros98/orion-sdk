@@ -58,21 +58,38 @@ class OrchestratorNode(BaseNode):
 
     async def compute(self, input_data, *args, **kwargs) -> ToolCall:
         """
-        Execute the orchestrator function with only the current task as input.
+        Execute the orchestrator function with reference resolution.
         Returns ToolCall object for routing decisions.
         """
         try:
             assert self.execution_memory is not None, "Execution memory is not set"
             
-            # Only pass the current task as user input, no execution history
+            input_context = str(input_data) if input_data is not None else ""
+            
+            # Resolve any memory references in the task
+            resolved_context = self.execution_memory.resolve_references(input_context)
             memory_summary = self.execution_memory.get_summary_for_orchestrator()
-            input_context = input_data if input_data is not None else ""
-            input_context = f"Memory summary: {memory_summary}\nTask: {input_context}"
             
-            logger.debug(f"Orchestrator '{self.name}' processing task: {input_context}")
+            # Show both original and resolved for debugging
+            if resolved_context != input_context:
+                enhanced_context = f"""Original task: {input_context}
+
+Resolved task: {resolved_context}
+
+{memory_summary}
+
+Route the resolved task to the appropriate tool."""
+            else:
+                enhanced_context = f"""Task: {resolved_context}
+
+{memory_summary}
+
+Route this task to the appropriate tool."""
             
-            # Execute orchestrator function with only the task
-            func_output = await self.node_func(prompt=input_context)
+            logger.debug(f"Orchestrator '{self.name}' processing: {enhanced_context[:200]}...")
+            
+            # Execute orchestrator function with resolved context
+            func_output = await self.node_func(prompt=enhanced_context)
 
             # Ensure we return a ToolCall object
             if isinstance(func_output, ToolCall):

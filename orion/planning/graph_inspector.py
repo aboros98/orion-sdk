@@ -32,9 +32,9 @@ class GraphInspector:
             node_cls = node.__class__.__name__
 
             # ---- SPECIAL NODES -------------------------------------------------
-            if node_cls == "MemoryReaderNode":
+            if hasattr(node, 'is_memory_reader'):
                 special_capabilities.append(
-                    f"  - {node_name} (MemoryReaderNode): Provides the LLM with\n    execution-memory context so it can use previous node outputs."
+                    f"  - {node_name} (Memory-enabled LLM): Provides the LLM with\n    execution-memory context so it can use previous node outputs."
                 )
                 continue
             if node_cls == "OrchestratorNode":

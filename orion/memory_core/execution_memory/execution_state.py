@@ -1,6 +1,7 @@
 from typing import List, Union, Dict, Optional, Any
 import uuid
 import logging
+import re
 
 from orion.persistence.event_store import EventStore
 from orion.agent_core.models import ToolCall
@@ -14,6 +15,7 @@ class ExecutionStep:
     node_name: str
     node_input: Union[str, ToolCall]
     node_output: str
+    node_type: Optional[str] = None
 
 
 class ExecutionMemory:
@@ -61,7 +63,8 @@ class ExecutionMemory:
             self.add_exec_step(
                 node_name=self.name,
                 node_input=input_str,
-                node_output=result
+                node_output=result,
+                node_type="execution_memory"
             )
             
             logger.debug(f"ExecutionMemory memory node '{self.name}' stored: {input_str[:100]}...")
@@ -76,7 +79,7 @@ class ExecutionMemory:
         self._exec_steps.clear()
 
     def add_exec_step(
-        self, node_name: str, node_input: str, node_output: str, solved_task: Optional[str] = None
+        self, node_name: str, node_input: str, node_output: str, solved_task: Optional[str] = None, node_type: Optional[str] = None
     ) -> None:
         """Add an execution step to the memory."""
         # Store the execution step
@@ -84,6 +87,7 @@ class ExecutionMemory:
             node_name=node_name,
             node_input=node_input,
             node_output=node_output,
+            node_type=node_type,
         )
         self._exec_steps.append(step)
         
@@ -199,7 +203,8 @@ class ExecutionMemory:
         return {
             'node_name': step.node_name,
             'node_input': serialized_input,
-            'node_output': step.node_output
+            'node_output': step.node_output,
+            'node_type': step.node_type
         }
     
     def _serialize_execution_memory(self) -> Dict[str, Any]:
@@ -234,3 +239,81 @@ class ExecutionMemory:
     def get_summary_dict(self) -> dict:
         """Return raw summary dictionary."""
         return self.summary.copy()
+
+    def resolve_references(self, text: str) -> str:
+        """Resolve memory references in text to actual content."""
+        def replace_reference(match):
+            ref_full = match.group(1)  # e.g., "node_name" or "node_name.summary"
+            
+            if '.' in ref_full:
+                node_name, modifier = ref_full.split('.', 1)
+            else:
+                node_name, modifier = ref_full, None
+            
+            # Get the actual content
+            output = self.get_node_output(node_name)
+            if output is None:
+                return f"[Reference {node_name}: not found]"
+            
+            # Apply modifier if specified
+            if modifier == 'summary':
+                # Return first 100 characters
+                return str(output)[:100] + "..." if len(str(output)) > 100 else str(output)
+            else:
+                # Return full content
+                return str(output)
+        
+        # Replace all {ref:...} patterns
+        return re.sub(r'\{ref:([^}]+)\}', replace_reference, text)
+
+    def get_available_references(self) -> List[str]:
+        """Get list of nodes that can be referenced."""
+        return [node for node in self.summary["completed_nodes"] if node not in ["__start__", "__end__"]]
+
+    def preview_reference(self, node_name: str) -> str:
+        """Get a preview of what a reference would resolve to."""
+        output = self.get_node_output(node_name)
+        if output is None:
+            return f"[{node_name}: not available]"
+        
+        preview = str(output)[:50] + "..." if len(str(output)) > 50 else str(output)
+        return f"{node_name}: {preview}"
+
+    def get_planning_memory_entries(self) -> List[str]:
+        """
+        Get memory entries formatted for planning agents.
+        
+        Returns summaries for all memory entries except for human-in-the-loop node outputs
+        (user input), which are provided in full.
+        
+        Returns:
+            List of formatted memory entry strings for planning context
+        """
+        if not self._exec_steps:
+            return []
+        
+        formatted_entries = []
+        
+        for step in self._exec_steps:
+            # Skip system nodes
+            if step.node_name in ["__start__", "__end__"]:
+                continue
+            
+            # Check if this is a human-in-the-loop node (user input) using node_type
+            is_user_input = step.node_type == "HumanInTheLoopNode"
+            
+            # Format the entry
+            if is_user_input:
+                # Provide full content for user input
+                entry = f"**{step.node_name}** (User Input):\n"
+                entry += f"Output: {str(step.node_output)}\n"
+            else:
+                # Provide summary for other nodes
+                output_summary = str(step.node_output)[:100] + "..." if len(str(step.node_output)) > 100 else str(step.node_output)
+                
+                entry = f"**{step.node_name}** (Summary):\n"
+                entry += f"Output: {output_summary}\n"
+            
+            formatted_entries.append(entry)
+        
+        return formatted_entries
