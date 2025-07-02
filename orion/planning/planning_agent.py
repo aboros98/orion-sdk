@@ -8,9 +8,7 @@ from orion.memory_core.execution_memory import ExecutionMemory
 from prompts import (
     PLANNING_SYSTEM_PROMPT,
     REVISION_SYSTEM_PROMPT,
-    PROMPT_OPTIMIZER_SYSTEM_PROMPT,
-    PLAN_CREATION_PROMPT_TEMPLATE,
-    PLAN_REVISION_PROMPT_TEMPLATE
+    PROMPT_OPTIMIZER_SYSTEM_PROMPT
 )
 
 load_dotenv()
@@ -165,11 +163,17 @@ class PlanningAgent:
         if hasattr(self, '_execution_memory') and self._execution_memory:
             execution_summary = self._execution_memory.get_summary_for_orchestrator()
         
-        prompt = PLAN_CREATION_PROMPT_TEMPLATE.format(
-            graph_capabilities=graph_capabilities,
-            execution_summary=execution_summary,
-            user_request=user_request
-        )
+        # Simple prompt with just the dynamic context - the system prompt already has all the methodology
+        prompt = f"""AVAILABLE TOOLS:
+{graph_capabilities}
+
+WORK ALREADY DONE:
+{execution_summary}
+
+USER REQUEST:
+{user_request}
+
+Please create an executable plan for this request following your standard planning methodology."""
 
         try:
             if not self.planning_agent:
@@ -219,12 +223,20 @@ class PlanningAgent:
         
         graph_capabilities = self.graph_inspector.get_available_capabilities()
         
-        prompt = PLAN_REVISION_PROMPT_TEMPLATE.format(
-            original_request=original_request,
-            current_plan=current_plan,
-            execution_history=execution_history,
-            graph_capabilities=graph_capabilities
-        )
+        # Simple prompt with just the dynamic context - the system prompt already has all the methodology
+        prompt = f"""ORIGINAL REQUEST:
+{original_request}
+
+CURRENT PLAN:
+{current_plan}
+
+WHAT ACTUALLY HAPPENED:
+{execution_history}
+
+AVAILABLE TOOLS:
+{graph_capabilities}
+
+Please revise the plan based on the execution results following your standard revision methodology."""
 
         try:
             if not self.revision_agent:
