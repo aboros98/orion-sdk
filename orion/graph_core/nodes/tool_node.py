@@ -43,6 +43,9 @@ class ToolNode(BaseNode):
             # Execute tool function - expect ToolCall input
             try:
                 if isinstance(input_data, ToolCall):
+                    if "_needs_memory" in input_data.arguments:
+                        input_data.arguments.pop("_needs_memory")
+
                     # Use ToolCall arguments
                     result = self.node_func(**input_data.arguments)
                 else:
@@ -52,7 +55,7 @@ class ToolNode(BaseNode):
                 # Handle async functions
                 if inspect.iscoroutine(result):
                     result = await result
-                        
+
             except Exception as e:
                 result = f"Tool execution failed: {str(e)}"
                 self._failed = True

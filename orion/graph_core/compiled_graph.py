@@ -1,11 +1,14 @@
-from typing import Dict, List, Optional
+from re import A
+from typing import Dict, List, Optional, Any
 import logging
 import time
 
 from .nodes import BaseNode, OrchestratorNode
 from .edges import BaseEdge, ConditionalEdge, Edge
 from orion.memory_core import ExecutionMemory
+from orion.memory_core.memory_retrieval_agent import MemoryRetrievalAgent
 from orion.agent_core.models import ToolCall
+from orion.agent_core.config import LLMConfig
 
 # Import for type checking
 from typing import TYPE_CHECKING
@@ -30,6 +33,7 @@ class CompiledGraph:
         self.edges = edges.copy()
         self.orchestrator_nodes = orchestrator_nodes or []
         self.event_store = event_store
+        self.memory_retrieval_agent = MemoryRetrievalAgent()
         self.execution_state = ExecutionMemory(
             event_store=event_store,
             workflow_id=workflow_id
@@ -38,8 +42,8 @@ class CompiledGraph:
         # Convert orchestrator regular edges to conditional edges
         self._create_orchestrator_conditional_edges()
 
-        # Connect memory-enabled nodes to execution memory
-        self._connect_memory_enabled_nodes()
+        # Connect orchestrator nodes to execution memory (they still need it for routing decisions)
+        self._connect_orchestrators_to_memory()
 
         logger.info(f"Graph compiled with {len(self.nodes)} nodes, {len(self.orchestrator_nodes)} orchestrators")
 
@@ -111,8 +115,7 @@ class CompiledGraph:
                 
                 # Add to execution path
                 execution_path.append(current_node)
-                
-                # Execute current node
+        
                 result = await self.nodes[current_node].compute(current_input)
                 
                 # Store result in memory UNLESS the node is an orchestrator (orchestrators are read-only)
@@ -142,8 +145,10 @@ class CompiledGraph:
                 if next_node and next_node in node_retry_counts and next_node != "__end__":
                     logger.info(f"Detected cycle: {current_node} -> {next_node}")
                 
-                # Prepare input for next iteration
-                current_input = result
+                # Prepare input for next iteration - with memory retrieval integration
+                current_input = await self._prepare_next_input(
+                    current_node, result, next_node, str(current_input)
+                )
                 current_node = next_node
 
             # Check if any nodes were executed
@@ -238,6 +243,47 @@ class CompiledGraph:
         logger.debug(f"No valid edges from {current_node}, ending execution")
         return "__end__"
 
+    async def _prepare_next_input(
+        self, 
+        current_node: str, 
+        result: Any, 
+        next_node: Optional[str], 
+        original_task: str
+    ) -> Any:
+        """
+        Prepare input for the next node with memory retrieval integration.
+        
+        If the current node is an orchestrator and returned a ToolCall,
+        enhance the ToolCall with memory retrieval before passing to next node.
+        """
+        # If current node is not an orchestrator, pass result as-is
+        if not isinstance(self.nodes[current_node], OrchestratorNode):
+            return result
+            
+        # If result is not a ToolCall, pass as-is  
+        if not isinstance(result, ToolCall):
+            return result
+                        
+        try:
+            # Use memory retrieval agent to get data mappings
+            logger.debug(f"Getting memory mappings for task: {original_task}, target tool: {result.tool_name}")
+
+            if "_needs_memory" in result.arguments and result.arguments["_needs_memory"]:
+                func_arguments = await self.memory_retrieval_agent.get_data_mappings(
+                    task=original_task,
+                    target_tool=result.tool_name,
+                    execution_memory=self.execution_state
+                )
+                
+                if func_arguments:
+                    result.arguments = func_arguments
+
+            return result
+                
+        except Exception as e:
+            logger.error(f"Failed to enhance ToolCall with memory retrieval: {e}")
+            return result  # Fallback to original ToolCall
+
     def _create_orchestrator_conditional_edges(self):
         """Convert regular edges from all orchestrators to conditional edges."""
         if not self.orchestrator_nodes:
@@ -279,12 +325,12 @@ class CompiledGraph:
             
             logger.info(f"Created conditional edges from orchestrator {orchestrator_name} to: {target_nodes}")
 
-    def _connect_memory_enabled_nodes(self):
-        """Connect memory-enabled nodes to ExecutionMemory."""        
+    def _connect_orchestrators_to_memory(self):
+        """Connect orchestrator nodes to ExecutionMemory (they need it for routing decisions)."""        
         for node_name, node in self.nodes.items():
-            if (isinstance(node, OrchestratorNode) or hasattr(node, 'is_memory_reader')) and hasattr(node, 'set_execution_memory'):
+            if isinstance(node, OrchestratorNode) and hasattr(node, 'set_execution_memory'):
                 node.set_execution_memory(self.execution_state)  # type: ignore
-                logger.debug(f"Connected {type(node).__name__} '{node_name}' to ExecutionMemory")
+                logger.debug(f"Connected orchestrator '{node_name}' to ExecutionMemory")
 
     def visualize(self) -> str:
         """Return a string visualization of the compiled graph."""
@@ -296,8 +342,6 @@ class CompiledGraph:
             node_type = type(node).__name__
             if isinstance(node, OrchestratorNode):
                 lines.append(f"  {name} ({node_type}) [ORCHESTRATOR]")
-            elif hasattr(node, 'is_memory_reader'):
-                lines.append(f"  {name} ({node_type}) [MEMORY_READER]")
             else:
                 lines.append(f"  {name} ({node_type})")
         

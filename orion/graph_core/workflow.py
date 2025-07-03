@@ -51,24 +51,7 @@ class WorkflowGraph:
         
         logger.info(f"Orchestrator '{node_name}' added (connect manually to __start__ to make it primary)")
 
-    def add_memory_reader_node(
-        self, 
-        node_name: str, 
-        llm_function: Callable,
-        memory_filter_nodes: Optional[List[str]] = None
-    ) -> None:
-        """Add a memory reader node that can access ExecutionMemory."""
-        if not node_name or not node_name.strip():
-            raise ValueError("Node name cannot be empty")
-        if node_name in self.nodes:
-            raise KeyError(f"Node '{node_name}' already exists in the graph")
-        if not callable(llm_function):
-            raise ValueError("llm_function must be callable")
-
-        memory_reader = LLMNode(node_name, llm_function, memory_filter_nodes, _enable_memory=True)
-        self.nodes[node_name] = memory_reader
-        
-        logger.info(f"Memory reader node '{node_name}' added with filter: {memory_filter_nodes or 'all nodes'}")
+# Memory reader nodes are no longer needed - MemoryRetrievalAgent handles data injection automatically
 
     def add_loop_node(
         self,

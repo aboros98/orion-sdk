@@ -10,6 +10,7 @@ from prompts import (
     REVISION_SYSTEM_PROMPT,
     PROMPT_OPTIMIZER_SYSTEM_PROMPT
 )
+from .planning_models import OutputPlan, OutputPlanRevision, ImprovedSystemPrompt
 
 load_dotenv()
 
@@ -45,14 +46,12 @@ async def optimize_planning_prompt(
         system_prompt=PROMPT_OPTIMIZER_SYSTEM_PROMPT,
         stream=False,
         exponential_backoff_retry=True,
+        schema=ImprovedSystemPrompt
     )
 
-    print(default_system_prompt)
-    print("-" * 100)
     result = await optimiser_agent(prompt=combined_prompt)
-    print(result)
 
-    return result.strip()
+    return result.system_prompt.strip()
 
 
 class PlanningAgent:
@@ -143,6 +142,7 @@ class PlanningAgent:
             base_url=os.getenv("BASE_URL"), #type: ignore
             llm_model=os.getenv("PLANNING_MODEL"), #type: ignore
             system_prompt=system_prompt,
+            schema=OutputPlan,
         )
 
     def _create_revision_agent(self):
@@ -152,6 +152,7 @@ class PlanningAgent:
             base_url=os.getenv("BASE_URL"), #type: ignore
             llm_model=os.getenv("PLANNING_MODEL"), #type: ignore
             system_prompt=REVISION_SYSTEM_PROMPT,
+            schema=OutputPlanRevision,
         )
 
     async def create_executable_plan(self, user_request: str) -> str:
@@ -173,27 +174,17 @@ WORK ALREADY DONE:
 USER REQUEST:
 {user_request}
 
-Please create an executable plan for this request following your standard planning methodology."""
+Please create an executable plan for this request."""
 
         try:
             if not self.planning_agent:
                 raise RuntimeError("Planning agent not initialized. Call `create` to instantiate.")
+            
             response = await self.planning_agent(prompt=prompt)
-            full_response = response
-            
-            # Extract just the plan portion for execution
-            plan_match = re.search(r'<plan>\s*(.*?)\s*</plan>', full_response, re.DOTALL)
-            if plan_match:
-                plan_content = plan_match.group(1).strip()
-                # Save the reasoning for reference
-                self._last_reasoning = full_response
-            else:
-                # Fallback if tags not found - try to extract from end
-                plan_content = full_response.split('<plan>')[-1].strip()
-                if '</plan>' in plan_content:
-                    plan_content = plan_content.split('</plan>')[0].strip()
-                self._last_reasoning = full_response
-            
+            thinking, plan_content = response.thinking, response.plan
+
+            print(plan_content)
+
             self.tasks_since_revision = 0
 
             return plan_content
@@ -220,7 +211,6 @@ Please create an executable plan for this request following your standard planni
         memory_entries = execution_memory.get_planning_memory_entries()
         
         execution_history = "\n".join(memory_entries) if memory_entries else "No execution history yet."
-        
         graph_capabilities = self.graph_inspector.get_available_capabilities()
         
         # Simple prompt with just the dynamic context - the system prompt already has all the methodology
@@ -241,23 +231,14 @@ Please revise the plan based on the execution results following your standard re
         try:
             if not self.revision_agent:
                 raise RuntimeError("Revision agent not initialized. Call `create` to instantiate.")
+            
             response = await self.revision_agent(prompt=prompt)
-            full_response = response
+            thinking, is_plan_on_track, revised_plan_content = response.thinking, response.should_revise, response.revised_plan
             
-            # Extract revised plan
-            plan_match = re.search(r'<revised_plan>\s*(.*?)\s*</revised_plan>', full_response, re.DOTALL)
-            if plan_match:
-                revised_plan = plan_match.group(1).strip()
-                self._last_revision_reasoning = full_response
-            else:
-                # Fallback extraction
-                revised_plan = full_response.split('<revised_plan>')[-1].strip()
-                if '</revised_plan>' in revised_plan:
-                    revised_plan = revised_plan.split('</revised_plan>')[0].strip()
-                self._last_revision_reasoning = full_response
+            if is_plan_on_track and revised_plan_content:
+                return revised_plan_content
             
-            self.tasks_since_revision = 0
-            return revised_plan
+            return current_plan
             
         except Exception as e:
             print(f"Error revising plan: {e}")

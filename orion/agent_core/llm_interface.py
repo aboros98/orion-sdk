@@ -98,7 +98,7 @@ async def get_response(
         log_messages_to_file(messages)
 
         if schema:
-            return response
+            return response.choices[0].message.parsed
 
         if isinstance(response, AsyncStream):
             async def stream_generator():

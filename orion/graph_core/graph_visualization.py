@@ -36,9 +36,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
             lines.append(f"    {node_name}([\"{node_name}\"]):::startNode")
         elif node_name == "__end__":
             lines.append(f"    {node_name}([\"{node_name}\"]):::endNode")
-        elif hasattr(node, 'is_memory_reader'):
-            # Special hexagon shape for memory reader nodes
-            lines.append("    " + node_name + "{\"" + node_name + "\"}:::memoryReaderNode")
+# Memory reader nodes no longer exist - removed with MemoryRetrievalAgent
         elif isinstance(node, OrchestratorNode):
             # Diamond shape for orchestrator/decision nodes
             lines.append("    " + node_name + "{\"" + node_name + "\"}:::orchestratorNode")
@@ -90,7 +88,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     lines.append("    classDef orchestratorNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#333")
     lines.append("    classDef loopNode fill:#eceff1,stroke:#607d8b,stroke-width:2px,color:#333,stroke-dasharray:5 5")
     lines.append("    classDef memoryNode fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#333,stroke-dasharray:3 3")
-    lines.append("    classDef memoryReaderNode fill:#e0f2f1,stroke:#009688,stroke-width:2px,color:#333")
+# Removed memoryReaderNode styling - no longer needed
     lines.append("    classDef implicitMemoryNode fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#333,stroke-dasharray:3 3")
     lines.append("    classDef defaultNode fill:#f5f5f5,stroke:#757575,stroke-width:2px,color:#333")
     lines.append("")
@@ -124,24 +122,24 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     
     # Add memory node if it doesn't exist but is needed
     if has_memory_functionality and not _has_explicit_memory_node(graph):
-        # Nodes that read from memory
+        # Nodes that read from memory (only orchestrators need memory for routing)
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
+            if isinstance(node, OrchestratorNode):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
         
-        # Nodes that write to memory (processing nodes except orchestrators)
+        # Nodes that write to memory (all processing nodes except orchestrators)
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (LLMNode, ToolNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
+            if isinstance(node, (LLMNode, ToolNode, LoopNode)):
                 if node_name not in ["__start__", "__end__"]:
                     lines.append(f"    {node_name} -->|write| {memory_node_name}")
     elif _has_explicit_memory_node(graph):
         # Handle explicit memory nodes
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
+            if isinstance(node, OrchestratorNode):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
         
         for node_name, node in graph.nodes.items():
-            if isinstance(node, (LLMNode, ToolNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
+            if isinstance(node, (LLMNode, ToolNode, LoopNode)):
                 if node_name not in ["__start__", "__end__"] and node_name != memory_node_name:
                     lines.append(f"    {node_name} -->|write| {memory_node_name}")
 
@@ -151,7 +149,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
 def _has_memory_functionality(graph: WorkflowGraph) -> bool:
     """Check if the graph has any memory-related functionality."""
     for node_name, node in graph.nodes.items():
-        if isinstance(node, (OrchestratorNode, LoopNode)) or hasattr(node, 'is_memory_reader'):
+        if isinstance(node, OrchestratorNode):
             return True
         if 'memory' in node_name.lower():
             return True

@@ -1,7 +1,6 @@
 from typing import List, Union, Dict, Optional, Any
 import uuid
 import logging
-import re
 
 from orion.persistence.event_store import EventStore
 from orion.agent_core.models import ToolCall
@@ -102,7 +101,7 @@ class ExecutionMemory:
                 self.summary["solved_tasks"].append(solved_task)
             
             # Store brief output description
-            output_desc = str(node_output)[:50] + "..." if len(str(node_output)) > 50 else str(node_output)
+            output_desc = str(node_output)[:250] + "..." if len(str(node_output)) > 250 else str(node_output)
             self.summary["available_outputs"][node_name] = output_desc
             
             # Update total count
@@ -240,31 +239,8 @@ class ExecutionMemory:
         """Return raw summary dictionary."""
         return self.summary.copy()
 
-    def resolve_references(self, text: str) -> str:
-        """Resolve memory references in text to actual content."""
-        def replace_reference(match):
-            ref_full = match.group(1)  # e.g., "node_name" or "node_name.summary"
-            
-            if '.' in ref_full:
-                node_name, modifier = ref_full.split('.', 1)
-            else:
-                node_name, modifier = ref_full, None
-            
-            # Get the actual content
-            output = self.get_node_output(node_name)
-            if output is None:
-                return f"[Reference {node_name}: not found]"
-            
-            # Apply modifier if specified
-            if modifier == 'summary':
-                # Return first 100 characters
-                return str(output)[:100] + "..." if len(str(output)) > 100 else str(output)
-            else:
-                # Return full content
-                return str(output)
-        
-        # Replace all {ref:...} patterns
-        return re.sub(r'\{ref:([^}]+)\}', replace_reference, text)
+
+
 
     def get_available_references(self) -> List[str]:
         """Get list of nodes that can be referenced."""

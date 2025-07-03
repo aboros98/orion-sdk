@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Optional, List, Dict
+from typing import Callable, Optional, List, Dict, Any
 import logging
 import os
 from dotenv import load_dotenv
@@ -25,7 +25,19 @@ async def enhance_description_with_llm(func_name: str, description: str) -> str:
 
     return enhanced_description
 
-async def function_to_schema(func: Callable, enhance_description: bool = False, func_name: Optional[str] = None) -> dict:
+async def function_to_schema(func: Callable, enhance_description: bool = False, func_name: Optional[str] = None, needs_memory: bool = False) -> dict:
+    """
+    Convert a function to a tool schema for use with LLM agents.
+    
+    Args:
+        func: The callable function to process
+        enhance_description: Whether to enhance the description using LLM
+        func_name: Optional override for the function name
+        needs_memory: Whether this function needs access to previous node outputs
+    
+    Returns:
+        Dictionary representing the function schema with optional _needs_memory parameter
+    """
     if not callable(func):
         raise ValueError("Input must be a callable function")
 
@@ -63,14 +75,16 @@ async def function_to_schema(func: Callable, enhance_description: bool = False, 
         logger.error(f"Failed to get signature for function {original_func.__name__}: {e}")
         raise ValueError(f"Failed to get signature for function {original_func.__name__}: {str(e)}")
 
+    # Initialize parameters dictionary with flexible typing
+    parameters: Dict[str, Dict[str, Any]] = {}
+    
     if hasattr(original_func, "system_prompt"):
         description = original_func.system_prompt
-        parameters = {"input_prompt": {"type": "string", "description": "The input prompt for the described agent."}}
-        required = ["input_prompt"]
-
+        parameters["input_prompt"] = {"type": "string", "description": "The input prompt for the described agent."}
+        required = ["input_prompt", "_needs_memory"]
+        
     else:
         description = original_func.__doc__ or ""
-        parameters = {}
 
         for param in signature.parameters.values():
             try:
@@ -82,7 +96,14 @@ async def function_to_schema(func: Callable, enhance_description: bool = False, 
                 raise KeyError(
                     f"Unknown type annotation {param.annotation} for parameter {param.name}: {str(e)}"
                 )
-            parameters[param.name] = {"type": param_type}
+            
+            param_schema = {"type": param_type}
+            
+            # Add default value if parameter has one
+            if param.default != inspect._empty:
+                param_schema["default"] = param.default
+            
+            parameters[param.name] = param_schema
 
         required = [
             param.name for param in signature.parameters.values() if param.default == inspect._empty
@@ -93,6 +114,10 @@ async def function_to_schema(func: Callable, enhance_description: bool = False, 
     if enhance_description and func_name:
         description = await enhance_description_with_llm(func_name, description) if description != "" else description
 
+    parameters["_needs_memory"] = {"type": "boolean", 
+                                   "description": "Whether this function needs access to previous node outputs for context",
+                                   "default": False}
+        
     return {
         "type": "function",
         "function": {
