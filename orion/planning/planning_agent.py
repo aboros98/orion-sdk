@@ -183,8 +183,6 @@ Please create an executable plan for this request."""
             response = await self.planning_agent(prompt=prompt)
             thinking, plan_content = response.thinking, response.plan
 
-            print(plan_content)
-
             self.tasks_since_revision = 0
 
             return plan_content
@@ -198,7 +196,8 @@ Please create an executable plan for this request."""
         current_plan: str, 
         execution_memory: ExecutionMemory,
         original_request: str,
-        force: bool = False
+        force: bool = False,
+        validation_context: Optional[str] = None
     ) -> str:
         """
         Revise the plan based on execution progress using ReAct-style reflection
@@ -213,6 +212,14 @@ Please create an executable plan for this request."""
         execution_history = "\n".join(memory_entries) if memory_entries else "No execution history yet."
         graph_capabilities = self.graph_inspector.get_available_capabilities()
         
+        # Build prompt with validation context if provided
+        validation_section = ""
+        if validation_context:
+            validation_section = f"""
+
+TASK VALIDATION ASSESSMENT:
+{validation_context}"""
+        
         # Simple prompt with just the dynamic context - the system prompt already has all the methodology
         prompt = f"""ORIGINAL REQUEST:
 {original_request}
@@ -221,7 +228,7 @@ CURRENT PLAN:
 {current_plan}
 
 WHAT ACTUALLY HAPPENED:
-{execution_history}
+{execution_history}{validation_section}
 
 AVAILABLE TOOLS:
 {graph_capabilities}

@@ -274,7 +274,6 @@ class CompiledGraph:
                     target_tool=result.tool_name,
                     execution_memory=self.execution_state
                 )
-                
                 if func_arguments:
                     result.arguments = func_arguments
 
