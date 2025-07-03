@@ -1,7 +1,14 @@
+"""
+Exponential retry for agent_core.
+
+This module contains the common retry logic used by both sync and async implementations.
+"""
+
 import asyncio
 import logging
 from typing import Callable, Any
 import openai
+import time
 from .config import ExponentialBackoffRetryConfig
 
 logger = logging.getLogger(__name__)
@@ -28,7 +35,7 @@ def should_retry_error(error: Exception) -> bool:
         return True
 
     # Retry on timeout errors
-    if isinstance(error, asyncio.TimeoutError):
+    if isinstance(error, (asyncio.TimeoutError, Exception)) and "timeout" in str(error).lower():
         return True
 
     # Check HTTP status codes for other errors
@@ -57,7 +64,7 @@ async def with_retry(
 
     Args:
         func: The async function to execute
-        config: SimpleRetryConfig with retry parameters
+        config: ExponentialBackoffRetryConfig with retry parameters
         *args, **kwargs: Arguments to pass to the function
 
     Returns:
@@ -96,3 +103,52 @@ async def with_retry(
             )
 
             await asyncio.sleep(delay)
+
+
+def with_sync_retry(
+    func: Callable[..., Any], config: ExponentialBackoffRetryConfig, *args, **kwargs
+) -> Any:
+    """
+    Execute a function with retry logic (synchronous version).
+
+    Args:
+        func: The function to execute
+        config: ExponentialBackoffRetryConfig with retry parameters
+        *args, **kwargs: Arguments to pass to the function
+
+    Returns:
+        The result of the function call
+
+    Raises:
+        The last exception if all retries are exhausted
+    """
+    for attempt in range(config.max_retries + 1):  # +1 for initial attempt
+        try:
+            if attempt > 0:
+                logger.debug(f"Retrying {func.__name__}, attempt {attempt + 1}")
+
+            result = func(*args, **kwargs)
+
+            if attempt > 0:
+                logger.info(f"{func.__name__} succeeded on attempt {attempt + 1}")
+
+            return result
+
+        except Exception as e:
+            if not should_retry_error(e):
+                logger.debug(f"Error {type(e).__name__} is not retryable for {func.__name__}")
+                raise e
+
+            # Check if we have retries left
+            if attempt >= config.max_retries:
+                logger.error(f"All {config.max_retries} retries exhausted for {func.__name__}")
+                raise e
+
+            # Calculate delay and wait
+            delay = calculate_exponential_delay(attempt + 1, config)
+            logger.warning(
+                f"{func.__name__} failed on attempt {attempt + 1} with {type(e).__name__}: {str(e)}. "
+                f"Retrying in {delay:.2f} seconds..."
+            )
+
+            time.sleep(delay)

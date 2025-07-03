@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 
-from .agents import build_agent
+from .agents import build_async_agent
 from prompts import ORCHESTRATOR_SYSTEM_PROMPT_TEMPLATE
 
 
@@ -59,7 +59,7 @@ def create_orchestrator(
 
     system_prompt = _build_system_prompt(tools)
 
-    return build_agent(
+    return build_async_agent(
         llm_model=llm_model,
         base_url=base_url,
         api_key=api_key,

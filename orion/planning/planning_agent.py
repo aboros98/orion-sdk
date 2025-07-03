@@ -2,7 +2,7 @@ import re
 from typing import List, Optional, Callable
 import os
 from dotenv import load_dotenv
-from orion.agent_core.agents import build_agent
+from orion.agent_core.agents import build_async_agent
 from orion.planning.graph_inspector import GraphInspector
 from orion.memory_core.execution_memory import ExecutionMemory
 from prompts import (
@@ -39,7 +39,7 @@ async def optimize_planning_prompt(
     # Pass the parameters as user input instead of system prompt formatting
     combined_prompt = f"USER INSTRUCTIONS:\n{user_instructions.strip()}\n\nCURRENT SYSTEM PROMPT:\n{default_system_prompt.strip()}"
 
-    optimiser_agent = build_agent(
+    optimiser_agent = build_async_agent(
         llm_model=llm_model,
         base_url=base_url,
         api_key=api_key,
@@ -137,7 +137,7 @@ class PlanningAgent:
     def _create_planning_agent(self, system_prompt: str):
         """Instantiate the planning LLM agent with the provided system prompt."""
 
-        return build_agent(
+        return build_async_agent(
             api_key=os.getenv("GEMINI_API_KEY"), #type: ignore
             base_url=os.getenv("BASE_URL"), #type: ignore
             llm_model=os.getenv("PLANNING_MODEL"), #type: ignore
@@ -147,7 +147,7 @@ class PlanningAgent:
 
     def _create_revision_agent(self):
         """Create the plan revision agent that understands execution memory format"""
-        return build_agent(
+        return build_async_agent(
             api_key=os.getenv("GEMINI_API_KEY"), #type: ignore
             base_url=os.getenv("BASE_URL"), #type: ignore
             llm_model=os.getenv("PLANNING_MODEL"), #type: ignore
@@ -283,23 +283,82 @@ Please revise the plan based on the execution results following your standard re
         
         return plan_content
 
+    def _extract_tasks_by_status(self, plan_content: str, status: str) -> List[str]:
+        """
+        Extract tasks by status using regex, including multi-line tasks.
+        
+        Args:
+            plan_content: The plan content to parse
+            status: Task status - 'all', 'pending', or 'completed'
+        """
+        # Convert semantic status to regex pattern
+        if status == 'all':
+            status_pattern = '[x ]'
+        elif status == 'pending':
+            status_pattern = ' '
+        elif status == 'completed':
+            status_pattern = 'x'
+        else:
+            raise ValueError(f"Invalid status: {status}. Must be 'all', 'pending', or 'completed'")
+        
+        # Split into lines and process line by line to capture multi-line tasks
+        lines = plan_content.split('\n')
+        tasks = []
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i]
+            # Match task line with the specified status pattern
+            task_match = re.match(fr'^(\s*)- \[{status_pattern}\] (.+)', line)
+            if task_match:
+                indent_level = len(task_match.group(1))
+                task_content = task_match.group(2)
+                
+                # Look for continuation lines (more indented, non-task lines)
+                j = i + 1
+                while j < len(lines):
+                    next_line = lines[j]
+                    
+                    # Skip empty lines
+                    if not next_line.strip():
+                        j += 1
+                        continue
+                    
+                    # Check if this is another task at same or less indentation
+                    next_task_match = re.match(r'^(\s*)- \[[x ]\] ', next_line)
+                    if next_task_match:
+                        next_indent = len(next_task_match.group(1))
+                        if next_indent <= indent_level:
+                            break
+                    
+                    # Check if this line is indented more than the task (continuation)
+                    indent_match = re.match(r'^(\s*)', next_line)
+                    line_indent = len(indent_match.group(1)) if indent_match else 0
+                    if line_indent > indent_level:
+                        task_content += '\n' + next_line.strip()
+                        j += 1
+                    else:
+                        # Line is not indented enough to be part of this task
+                        break
+                
+                tasks.append(task_content.strip())
+                i = j
+            else:
+                i += 1
+        
+        return [task for task in tasks if task]
+
     def extract_tasks_from_plan(self, plan_content: str) -> List[str]:
-        """Extract all tasks from plan content"""
-        task_pattern = r'- \[[x ]\] (.+)'
-        matches = re.findall(task_pattern, plan_content)
-        return [task.strip() for task in matches if task.strip()]
+        """Extract all tasks from plan content, including multi-line tasks"""
+        return self._extract_tasks_by_status(plan_content, 'all')
 
     def get_pending_tasks(self, plan_content: str) -> List[str]:
-        """Extract pending/incomplete tasks"""
-        pending_pattern = r'- \[ \] (.+)'
-        matches = re.findall(pending_pattern, plan_content)
-        return [task.strip() for task in matches if task.strip()]
+        """Extract pending/incomplete tasks, including multi-line tasks"""
+        return self._extract_tasks_by_status(plan_content, 'pending')
 
     def get_completed_tasks(self, plan_content: str) -> List[str]:
-        """Extract completed tasks"""
-        completed_pattern = r'- \[x\] (.+)'
-        matches = re.findall(completed_pattern, plan_content)
-        return [task.strip() for task in matches if task.strip()]
+        """Extract completed tasks, including multi-line tasks"""
+        return self._extract_tasks_by_status(plan_content, 'completed')
 
     def get_last_reasoning(self) -> Optional[str]:
         """Get the last reasoning/brainstorming output"""

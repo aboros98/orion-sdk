@@ -1,7 +1,7 @@
 import os
 from typing import Optional, Callable
 from dotenv import load_dotenv
-from orion.agent_core.agents import build_agent
+from orion.agent_core.agents import build_async_agent
 from prompts import TASK_VALIDATION_SYSTEM_PROMPT
 from .planning_models import TaskValidationResult
 
@@ -34,7 +34,7 @@ class TaskValidationAgent:
     
     def _create_validation_agent(self):
         """Create the task validation LLM agent."""
-        return build_agent(
+        return build_async_agent(
             api_key=os.getenv("GEMINI_API_KEY"), #type: ignore
             base_url=os.getenv("BASE_URL"), #type: ignore
             llm_model=os.getenv("PLANNING_MODEL"), #type: ignore  # Using same lightweight model as planning

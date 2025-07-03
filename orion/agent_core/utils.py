@@ -4,6 +4,7 @@ import logging
 import os
 from dotenv import load_dotenv
 from prompts import DESCRIPTION_ENHANCER_SYSTEM_PROMPT
+from .models import DescriptionEnhancerResponse
 
 load_dotenv()
 
@@ -12,18 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 async def enhance_description_with_llm(func_name: str, description: str) -> str:
-    from .agents import build_agent
+    from .agents import build_async_agent
 
-    description_enhancer = build_agent(llm_model=os.getenv("GENERAL_MODEL"), #type: ignore
+    description_enhancer = build_async_agent(llm_model=os.getenv("GENERAL_MODEL"), #type: ignore
                                        base_url=os.getenv("BASE_URL"), #type: ignore
                                        api_key=os.getenv("GEMINI_API_KEY"), #type: ignore
                                        exponential_backoff_retry=True,
-                                       system_prompt=DESCRIPTION_ENHANCER_SYSTEM_PROMPT)
+                                       system_prompt=DESCRIPTION_ENHANCER_SYSTEM_PROMPT,
+                                       schema=DescriptionEnhancerResponse)
 
     # Pass the function details as user input
     enhanced_description = await description_enhancer(prompt=f"Function name: {func_name}\nFunction description: {description}")
 
-    return enhanced_description
+    return enhanced_description.description
+
 
 async def function_to_schema(func: Callable, enhance_description: bool = False, func_name: Optional[str] = None, needs_memory: bool = False) -> dict:
     """

@@ -11,7 +11,7 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from orion.agent_core.agents import build_agent
+from orion.agent_core.agents import build_async_agent
 from orion.memory_core.execution_memory.execution_state import ExecutionMemory
 from prompts import MEMORY_RETRIEVAL_SYSTEM_PROMPT
 
@@ -46,7 +46,7 @@ class MemoryRetrievalAgent:
         
         Creates its own LLM agent using environment configuration.
         """
-        self.agent = build_agent(
+        self.agent = build_async_agent(
             llm_model=os.getenv("GENERAL_MODEL"),  # type: ignore
             base_url=os.getenv("BASE_URL"),  # type: ignore
             api_key=os.getenv("GEMINI_API_KEY"),  # type: ignore
