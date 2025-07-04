@@ -22,13 +22,11 @@ def _build_system_prompt(tools: List[Dict[str, Any]]) -> str:
             name = func_info.get("name", "unknown")
             description = func_info.get("description", "No description available")
             tool_descriptions.append(f"• {name}: {description}")
-    
+
     tools_descriptions_text = "\n".join(tool_descriptions)
-    
+
     # Format the template with tool descriptions
-    return ORCHESTRATOR_SYSTEM_PROMPT_TEMPLATE.format(
-        tools_descriptions=tools_descriptions_text
-    )
+    return ORCHESTRATOR_SYSTEM_PROMPT_TEMPLATE.format(tools_descriptions=tools_descriptions_text)
 
 
 def create_orchestrator(
@@ -69,5 +67,5 @@ def create_orchestrator(
         top_p=top_p,
         tools=tools,
         tool_choice="required",
-        exponential_backoff_retry=True
-    ) 
+        exponential_backoff_retry=True,
+    )

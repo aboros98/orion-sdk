@@ -6,4 +6,4 @@ from .workflow_state import WorkflowStateReconstructor
 __all__ = [
     "EventStore",
     "WorkflowStateReconstructor",
-] 
+]

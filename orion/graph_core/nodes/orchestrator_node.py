@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class OrchestratorNode(BaseNode):
     """
     Simplified orchestrator node for workflow routing with memory access.
-    
+
     The orchestrator:
     - Receives input and decides which node to route to
     - Has access to execution memory for routing decisions
@@ -38,22 +38,22 @@ class OrchestratorNode(BaseNode):
         """Get simple memory context for routing decisions."""
         if not self.execution_memory:
             return "No execution history available."
-        
+
         # Get all execution entries
         entries = self.execution_memory.get_entries_for_nodes()
-        
+
         if not entries:
             return "No execution history available."
-        
+
         # Filter out system nodes and format simply
         meaningful_entries = []
         for entry in entries:
             if entry.node_name not in ["__start__", "__end__"]:
                 meaningful_entries.append(f"- {entry.node_name}: {entry.node_output}")
-        
+
         if not meaningful_entries:
             return "No execution history available."
-            
+
         return "Previous execution history:\n" + "\n".join(meaningful_entries)
 
     async def compute(self, input_data, *args, **kwargs) -> ToolCall:
@@ -63,19 +63,19 @@ class OrchestratorNode(BaseNode):
         """
         try:
             assert self.execution_memory is not None, "Execution memory is not set"
-            
+
             input_context = str(input_data) if input_data is not None else ""
             memory_summary = self.execution_memory.get_summary_for_orchestrator()
-            
+
             # Build enhanced context for orchestrator
             enhanced_context = f"""{memory_summary}
             
 Task: {input_context}
 
 Route this task to the appropriate tool."""
-            
+
             logger.debug(f"Orchestrator '{self.name}' processing: {enhanced_context[:200]}...")
-            
+
             # Execute orchestrator function
             func_output = await self.node_func(prompt=enhanced_context)
 

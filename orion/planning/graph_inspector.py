@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 class GraphInspector:
     """Inspector for analyzing graph capabilities and generating examples."""
-    
+
     def __init__(self, compiled_graph: "CompiledGraph"):
         """Store compiled graph reference"""
         self.compiled_graph = compiled_graph
@@ -32,7 +32,7 @@ class GraphInspector:
             node_cls = node.__class__.__name__
 
             # ---- SPECIAL NODES -------------------------------------------------
-            if hasattr(node, 'is_memory_reader'):
+            if hasattr(node, "is_memory_reader"):
                 special_capabilities.append(
                     f"  - {node_name} (Memory-enabled LLM): Provides the LLM with\n    execution-memory context so it can use previous node outputs."
                 )
@@ -94,49 +94,49 @@ class GraphInspector:
         """Extract capability description for LLM nodes from system prompt."""
         try:
             # First, check if the function has system_prompt attribute (from build_agent)
-            if hasattr(node_func, 'system_prompt') and node_func.system_prompt:
+            if hasattr(node_func, "system_prompt") and node_func.system_prompt:
                 system_prompt = node_func.system_prompt.strip()
                 # Extract first meaningful line from system prompt
-                lines = [line.strip() for line in system_prompt.split('\n') if line.strip()]
+                lines = [line.strip() for line in system_prompt.split("\n") if line.strip()]
                 if lines:
                     first_line = lines[0]
                     # Remove common prefixes and make it a capability description
-                    first_line = first_line.replace('You are a ', '').replace('You are an ', '')
-                    first_line = first_line.replace('You are ', '').rstrip('.')
+                    first_line = first_line.replace("You are a ", "").replace("You are an ", "")
+                    first_line = first_line.replace("You are ", "").rstrip(".")
                     return first_line.capitalize()
-            
+
             # Fallback: Try to access system prompt from closure (old method)
-            if hasattr(node_func, '__closure__') and node_func.__closure__:
+            if hasattr(node_func, "__closure__") and node_func.__closure__:
                 for cell in node_func.__closure__:
-                    if hasattr(cell.cell_contents, 'system_prompt'):
+                    if hasattr(cell.cell_contents, "system_prompt"):
                         system_prompt = cell.cell_contents.system_prompt
                         if system_prompt:
-                            lines = [line.strip() for line in system_prompt.strip().split('\n') if line.strip()]
+                            lines = [line.strip() for line in system_prompt.strip().split("\n") if line.strip()]
                             if lines:
                                 first_line = lines[0]
-                                first_line = first_line.replace('You are a ', '').replace('You are an ', '')
-                                first_line = first_line.replace('You are ', '').rstrip('.')
+                                first_line = first_line.replace("You are a ", "").replace("You are an ", "")
+                                first_line = first_line.replace("You are ", "").rstrip(".")
                                 return first_line.capitalize()
-            
+
             # Try to get from function signature or defaults
             sig = inspect.signature(node_func)
             for param in sig.parameters.values():
                 if param.default != param.empty and isinstance(param.default, str):
-                    if 'system' in param.name.lower() or 'prompt' in param.name.lower():
-                        lines = [line.strip() for line in param.default.strip().split('\n') if line.strip()]
+                    if "system" in param.name.lower() or "prompt" in param.name.lower():
+                        lines = [line.strip() for line in param.default.strip().split("\n") if line.strip()]
                         if lines:
                             first_line = lines[0]
-                            first_line = first_line.replace('You are a ', '').replace('You are an ', '')
-                            first_line = first_line.replace('You are ', '').rstrip('.')
+                            first_line = first_line.replace("You are a ", "").replace("You are an ", "")
+                            first_line = first_line.replace("You are ", "").rstrip(".")
                             return first_line.capitalize()
-            
+
             # Check function docstring
             if node_func.__doc__:
-                return node_func.__doc__.strip().split('\n')[0]
-                
+                return node_func.__doc__.strip().split("\n")[0]
+
         except Exception as e:
             # Log the error for debugging but don't crash
             print(f"Warning: Could not extract LLM capability for node function: {e}")
-        
+
         # Fallback to generic description
         return "General reasoning and analysis"

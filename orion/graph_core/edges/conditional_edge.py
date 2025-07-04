@@ -59,11 +59,9 @@ class ConditionalEdge(BaseEdge):
         try:
             # Evaluate condition with just the node output
             condition_result = self.condition(node_output)
-            
-            logger.debug(
-                f"ConditionalEdge evaluated condition for node '{node.name}': {condition_result}"
-            )
-            
+
+            logger.debug(f"ConditionalEdge evaluated condition for node '{node.name}': {condition_result}")
+
         except Exception as e:
             logger.error(f"ConditionalEdge condition evaluation failed for node '{node.name}': {e}")
             raise Exception(f"Condition evaluation failed: {e}")

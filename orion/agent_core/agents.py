@@ -59,7 +59,7 @@ def build_async_agent(
         """Pre-configured async agent that only needs a prompt."""
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
-        
+
         return await get_response(
             config=config,
             prompt=prompt,
@@ -73,7 +73,7 @@ def build_async_agent(
     # Set attributes for GraphInspector access
     agent.system_prompt = system_prompt
     agent.tools = tools
-    
+
     return agent
 
 
@@ -129,7 +129,7 @@ def build_sync_agent(
         """Pre-configured sync agent that only needs a prompt."""
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
-        
+
         return get_sync_response(
             config=config,
             prompt=prompt,
@@ -143,5 +143,5 @@ def build_sync_agent(
     # Set attributes for GraphInspector access
     agent.system_prompt = system_prompt
     agent.tools = tools
-    
+
     return agent

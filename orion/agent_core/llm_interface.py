@@ -31,10 +31,10 @@ def _get_response_content(response) -> str:
 def _has_tool_calls(response) -> bool:
     """Check if response has tool calls."""
     return (
-        hasattr(response, 'choices') and
-        len(response.choices) > 0 and
-        hasattr(response.choices[0].message, 'tool_calls') and
-        response.choices[0].message.tool_calls
+        hasattr(response, "choices")
+        and len(response.choices) > 0
+        and hasattr(response.choices[0].message, "tool_calls")
+        and response.choices[0].message.tool_calls
     )
 
 
@@ -82,11 +82,12 @@ def _prepare_kwargs_for_retry(kwargs: Dict[str, Any]) -> Dict[str, Any]:
         kwargs.pop("stream")
         kwargs.pop("tools")
         kwargs.pop("tool_choice")
-    
+
     return kwargs
 
 
 # ASYNC FUNCTIONS
+
 
 async def _call_with_retry_if_configured(func, config: LLMConfig, *args, **kwargs):
     """Call function with retry if config has retry enabled."""
@@ -132,7 +133,7 @@ async def get_response(
 
     try:
         chat_completion_func = _get_chat_completion_func(client, schema)
-        
+
         response = await _call_with_retry_if_configured(
             lambda **kwargs: chat_completion_func(**kwargs),
             config,
@@ -159,6 +160,7 @@ async def get_response(
 
 
 # SYNC FUNCTIONS
+
 
 def _call_sync_with_retry_if_configured(func, config: LLMConfig, *args, **kwargs):
     """Call function with retry if config has retry enabled (synchronous version)."""
@@ -204,7 +206,7 @@ def get_sync_response(
 
     try:
         chat_completion_func = _get_chat_completion_func(client, schema)
-        
+
         response = _call_sync_with_retry_if_configured(
             lambda **kwargs: chat_completion_func(**kwargs),
             config,

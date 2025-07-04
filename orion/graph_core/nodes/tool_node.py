@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class ToolNode(BaseNode):
     """
     A node that executes tool functions.
-    
+
     Simple behavior:
     - Gets input from previous node or memory
     - Executes tool function
@@ -51,7 +51,7 @@ class ToolNode(BaseNode):
                 else:
                     # Fallback for string input
                     result = self.node_func(input_data)
-                
+
                 # Handle async functions
                 if inspect.iscoroutine(result):
                     result = await result

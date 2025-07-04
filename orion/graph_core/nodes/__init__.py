@@ -9,7 +9,7 @@ from .human_in_the_loop_node import HumanInTheLoopNode
 
 __all__ = [
     "BaseNode",
-    "LLMNode", 
+    "LLMNode",
     "ToolNode",
     "OrchestratorNode",
     "LoopNode",

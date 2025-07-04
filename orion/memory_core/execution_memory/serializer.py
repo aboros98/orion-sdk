@@ -40,21 +40,13 @@ class MemorySerializer:
     @staticmethod
     def serialize_input_request(input_request: str) -> str:
         """Serialize input request to XML"""
-        return (
-            f"<memory_entry>\n"
-            f"    <input_request>{input_request}</input_request>\n"
-            f"</memory_entry>"
-        )
+        return f"<memory_entry>\n" f"    <input_request>{input_request}</input_request>\n" f"</memory_entry>"
 
     @staticmethod
     def serialize_llm_node(step: ExecutionStep) -> str:
         """Serialize LLM node to XML"""
         node_name = step.node_name
-        node_output = (
-            step.node_output
-            if isinstance(step.node_output, str)
-            else step.node_output.model_dump_json()
-        )
+        node_output = step.node_output if isinstance(step.node_output, str) else step.node_output.model_dump_json()
 
         return (
             f"<memory_entry>\n"

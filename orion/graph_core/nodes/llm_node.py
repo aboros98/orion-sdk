@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class LLMNode(BaseNode):
     """
     A node that processes input through an LLM agent function.
-    
+
     Data from previous steps is automatically injected via MemoryRetrievalAgent,
     so no manual memory management is needed.
     """
@@ -31,7 +31,7 @@ class LLMNode(BaseNode):
     async def compute(self, input_data, *args, **kwargs) -> Union[str, ToolCall]:
         """
         Execute the LLM agent function with the provided input.
-        
+
         All necessary data is provided via input_data arguments,
         automatically injected by MemoryRetrievalAgent.
         """

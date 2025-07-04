@@ -10,14 +10,14 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     """
     Generate a clean Mermaid flowchart definition for the given execution graph.
     Supports all node types with plain professional styling and explicit memory arrows.
-    
+
     Features:
     - Clean professional design without emojis
     - Plain color scheme with light backgrounds
     - Explicit memory read/write arrows
     - Distinctive shapes for different node types
     - Automatic memory node detection and inclusion
-    
+
     Returns:
         str: Mermaid flowchart definition with clean styling
     """
@@ -25,57 +25,61 @@ def to_mermaid(graph: WorkflowGraph) -> str:
 
     # Track if we have memory-related functionality
     has_memory_functionality = _has_memory_functionality(graph)
-    
+
     # Define node shapes based on node type with clean styling (excluding memory nodes)
     for node_name, node in graph.nodes.items():
         # Skip memory nodes as they will be in isolated subgraph
-        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not hasattr(node, 'is_memory_reader')):
+        if isinstance(node, ExecutionMemory) or (
+            "memory" in node_name.lower() and not hasattr(node, "is_memory_reader")
+        ):
             continue
-            
+
         if node_name == "__start__":
-            lines.append(f"    {node_name}([\"{node_name}\"]):::startNode")
+            lines.append(f'    {node_name}(["{node_name}"]):::startNode')
         elif node_name == "__end__":
-            lines.append(f"    {node_name}([\"{node_name}\"]):::endNode")
-# Memory reader nodes no longer exist - removed with MemoryRetrievalAgent
+            lines.append(f'    {node_name}(["{node_name}"]):::endNode')
+        # Memory reader nodes no longer exist - removed with MemoryRetrievalAgent
         elif isinstance(node, OrchestratorNode):
             # Diamond shape for orchestrator/decision nodes
-            lines.append("    " + node_name + "{\"" + node_name + "\"}:::orchestratorNode")
+            lines.append("    " + node_name + '{"' + node_name + '"}:::orchestratorNode')
         elif isinstance(node, LoopNode):
             # Special container shape for loop nodes
-            lines.append("    " + node_name + "[[\"" + node_name + "\"]]:::loopNode")
+            lines.append("    " + node_name + '[["' + node_name + '"]]:::loopNode')
         elif isinstance(node, LLMNode):
             # Rounded rectangle for LLM nodes
-            lines.append("    " + node_name + "(\"" + node_name + "\"):::llmNode")
+            lines.append("    " + node_name + '("' + node_name + '"):::llmNode')
         elif isinstance(node, ToolNode):
             # Rectangle for tool nodes
-            lines.append(f"    {node_name}[\"{node_name}\"]:::toolNode")
+            lines.append(f'    {node_name}["{node_name}"]:::toolNode')
         else:
             # Default shape for unknown node types
-            lines.append(f"    {node_name}[\"{node_name}\"]:::defaultNode")
+            lines.append(f'    {node_name}["{node_name}"]:::defaultNode')
 
     # Add memory node in isolated subgraph if memory functionality is detected
     if has_memory_functionality and not _has_explicit_memory_node(graph):
         lines.append("")
         lines.append("    %% === Memory Layer (Isolated) ===")
-        lines.append("    subgraph MemoryLayer [\"Memory Layer\"]")
-        lines.append("        ExecutionMemory[(\"ExecutionMemory\")]:::implicitMemoryNode")
+        lines.append('    subgraph MemoryLayer ["Memory Layer"]')
+        lines.append('        ExecutionMemory[("ExecutionMemory")]:::implicitMemoryNode')
         lines.append("    end")
 
     # Handle explicit memory nodes in isolated subgraph
     explicit_memory_nodes = []
     for node_name, node in graph.nodes.items():
-        if isinstance(node, ExecutionMemory) or ('memory' in node_name.lower() and not hasattr(node, 'is_memory_reader')):
+        if isinstance(node, ExecutionMemory) or (
+            "memory" in node_name.lower() and not hasattr(node, "is_memory_reader")
+        ):
             explicit_memory_nodes.append((node_name, node))
-    
+
     if explicit_memory_nodes:
         lines.append("")
         lines.append("    %% === Memory Layer (Isolated) ===")
-        lines.append("    subgraph MemoryLayer [\"Memory Layer\"]")
+        lines.append('    subgraph MemoryLayer ["Memory Layer"]')
         for memory_node_name, memory_node in explicit_memory_nodes:
             if isinstance(memory_node, ExecutionMemory):
-                lines.append(f"        {memory_node_name}[(\"{memory_node_name}\")]:::memoryNode")
+                lines.append(f'        {memory_node_name}[("{memory_node_name}")]:::memoryNode')
             else:
-                lines.append(f"        {memory_node_name}[(\"{memory_node_name}\")]:::memoryNode")
+                lines.append(f'        {memory_node_name}[("{memory_node_name}")]:::memoryNode')
         lines.append("    end")
 
     # Add clean CSS classes with plain colors
@@ -88,8 +92,10 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     lines.append("    classDef orchestratorNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#333")
     lines.append("    classDef loopNode fill:#eceff1,stroke:#607d8b,stroke-width:2px,color:#333,stroke-dasharray:5 5")
     lines.append("    classDef memoryNode fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#333,stroke-dasharray:3 3")
-# Removed memoryReaderNode styling - no longer needed
-    lines.append("    classDef implicitMemoryNode fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#333,stroke-dasharray:3 3")
+    # Removed memoryReaderNode styling - no longer needed
+    lines.append(
+        "    classDef implicitMemoryNode fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#333,stroke-dasharray:3 3"
+    )
     lines.append("    classDef defaultNode fill:#f5f5f5,stroke:#757575,stroke-width:2px,color:#333")
     lines.append("")
     lines.append("    %% === Subgraph Styling ===")
@@ -112,21 +118,21 @@ def to_mermaid(graph: WorkflowGraph) -> str:
     # Add memory read/write arrows
     lines.append("")
     lines.append("    %% === Memory Interactions ===")
-    
+
     memory_node_name = "ExecutionMemory"
     # Find explicit memory node if it exists
     for node_name, node in graph.nodes.items():
         if isinstance(node, ExecutionMemory):
             memory_node_name = node_name
             break
-    
+
     # Add memory node if it doesn't exist but is needed
     if has_memory_functionality and not _has_explicit_memory_node(graph):
         # Nodes that read from memory (only orchestrators need memory for routing)
         for node_name, node in graph.nodes.items():
             if isinstance(node, OrchestratorNode):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
-        
+
         # Nodes that write to memory (all processing nodes except orchestrators)
         for node_name, node in graph.nodes.items():
             if isinstance(node, (LLMNode, ToolNode, LoopNode)):
@@ -137,7 +143,7 @@ def to_mermaid(graph: WorkflowGraph) -> str:
         for node_name, node in graph.nodes.items():
             if isinstance(node, OrchestratorNode):
                 lines.append(f"    {memory_node_name} -->|read| {node_name}")
-        
+
         for node_name, node in graph.nodes.items():
             if isinstance(node, (LLMNode, ToolNode, LoopNode)):
                 if node_name not in ["__start__", "__end__"] and node_name != memory_node_name:
@@ -151,7 +157,7 @@ def _has_memory_functionality(graph: WorkflowGraph) -> bool:
     for node_name, node in graph.nodes.items():
         if isinstance(node, OrchestratorNode):
             return True
-        if 'memory' in node_name.lower():
+        if "memory" in node_name.lower():
             return True
     return False
 
@@ -161,7 +167,7 @@ def _has_explicit_memory_node(graph: WorkflowGraph) -> bool:
     for node_name, node in graph.nodes.items():
         if isinstance(node, ExecutionMemory):
             return True
-        if 'memory' in node_name.lower() and not hasattr(node, 'is_memory_reader'):
+        if "memory" in node_name.lower() and not hasattr(node, "is_memory_reader"):
             return True
     return False
 
@@ -174,7 +180,7 @@ def _clean_label(label: str) -> str:
     if len(label) > 15:
         label = label[:12] + "..."
     # Replace characters that might break Mermaid syntax
-    label = label.replace('"', "'").replace('\n', ' ').replace('|', '/')
+    label = label.replace('"', "'").replace("\n", " ").replace("|", "/")
     return label
 
 

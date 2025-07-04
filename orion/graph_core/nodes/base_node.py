@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class BaseNode(ABC):
     """
     Abstract base class for all nodes in the execution graph.
-    
+
     Simple rules:
     - If chained: get last output from previous node
     - If connected to exec memory: write there
@@ -33,7 +33,7 @@ class BaseNode(ABC):
 
         self.name = name
         self.is_orchestrator = False
-        
+
         self.node_func = node_func
 
     @abstractmethod
@@ -52,5 +52,3 @@ class BaseNode(ABC):
             Exception: If the computation fails
         """
         pass
-
-

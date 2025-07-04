@@ -48,10 +48,10 @@ class WorkflowGraph:
         orchestrator = OrchestratorNode(node_name, orchestrator_function)
         self.nodes[node_name] = orchestrator
         self.orchestrator_nodes.append(node_name)
-        
+
         logger.info(f"Orchestrator '{node_name}' added (connect manually to __start__ to make it primary)")
 
-# Memory reader nodes are no longer needed - MemoryRetrievalAgent handles data injection automatically
+    # Memory reader nodes are no longer needed - MemoryRetrievalAgent handles data injection automatically
 
     def add_loop_node(
         self,
@@ -59,11 +59,11 @@ class WorkflowGraph:
         sub_graph: "WorkflowGraph",
         loop_condition: Callable[[str, int], bool],
         max_iterations: int = 100,
-        max_execution_time: int = 300
+        max_execution_time: int = 300,
     ) -> None:
         """
         Add a loop node that contains and repeatedly executes a sub-graph.
-        
+
         Args:
             node_name: Unique identifier for the loop node
             sub_graph: The WorkflowGraph to execute repeatedly
@@ -83,8 +83,10 @@ class WorkflowGraph:
 
         loop_node = LoopNode(node_name, sub_graph, loop_condition, max_iterations, max_execution_time)
         self.nodes[node_name] = loop_node
-        
-        logger.info(f"Loop node '{node_name}' added with {len(sub_graph.nodes)} sub-graph nodes, max_iterations={max_iterations}")
+
+        logger.info(
+            f"Loop node '{node_name}' added with {len(sub_graph.nodes)} sub-graph nodes, max_iterations={max_iterations}"
+        )
 
     def add_conditional_edge(
         self,
@@ -132,13 +134,13 @@ class WorkflowGraph:
             raise ValueError(f"Orchestrator node '{orchestrator_node_name}' not found.")
 
         orchestrator = self.nodes[orchestrator_node_name].node_func
-        
-        if not hasattr(orchestrator, 'tools'):
+
+        if not hasattr(orchestrator, "tools"):
             raise TypeError("The 'agent' object must have a 'tools' attribute that is a list.")
 
         # 1. Create and add the HumanInTheLoopNode
         hil_node_name = f"{orchestrator_node_name}_clarification"
-    
+
         if hil_node_name in self.nodes:
             logger.warning(f"HumanInTheLoopNode '{hil_node_name}' already exists.")
         else:
@@ -146,8 +148,10 @@ class WorkflowGraph:
             logger.info(f"Added HumanInTheLoopNode: '{hil_node_name}'")
 
         self.add_edge(orchestrator_node_name, hil_node_name)
-        logger.info(f"Connected orchestrator '{orchestrator_node_name}' -> HumanInTheLoopNode '{hil_node_name}' (no automatic return)")
-        
+        logger.info(
+            f"Connected orchestrator '{orchestrator_node_name}' -> HumanInTheLoopNode '{hil_node_name}' (no automatic return)"
+        )
+
         # 3. Define the tool for the agent and register it
         clarification_tool = {
             "type": "function",
@@ -159,19 +163,19 @@ class WorkflowGraph:
                     "properties": {
                         "original_input": {
                             "type": "string",
-                            "description": "The original user request that explicitly requires human input."
+                            "description": "The original user request that explicitly requires human input.",
                         },
                         "clarification_prompt": {
                             "type": "string",
                             "description": (
                                 "A courteous question or request for confirmation presented to the user. "
                                 "If multiple details are required, format the prompt as an enumerated list so it is easy for the user to respond to each item."
-                            )
-                        }
+                            ),
+                        },
                     },
-                    "required": ["original_input", "clarification_prompt"]
-                }
-            }
+                    "required": ["original_input", "clarification_prompt"],
+                },
+            },
         }
 
         # Check if the tool is already registered
@@ -186,11 +190,11 @@ class WorkflowGraph:
         logger.info("Compiling execution graph...")
 
         return CompiledGraph(
-            nodes=self.nodes.copy(), 
+            nodes=self.nodes.copy(),
             edges=self.edges.copy(),
             orchestrator_nodes=self.orchestrator_nodes.copy(),
             event_store=event_store,
-            workflow_id=workflow_id
+            workflow_id=workflow_id,
         )
 
     def execute(self, *args, **kwargs) -> str:

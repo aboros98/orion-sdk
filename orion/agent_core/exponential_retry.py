@@ -56,9 +56,7 @@ def calculate_exponential_delay(attempt: int, config: ExponentialBackoffRetryCon
     return min(delay, config.max_delay)
 
 
-async def with_retry(
-    func: Callable[..., Any], config: ExponentialBackoffRetryConfig, *args, **kwargs
-) -> Any:
+async def with_retry(func: Callable[..., Any], config: ExponentialBackoffRetryConfig, *args, **kwargs) -> Any:
     """
     Execute a function with retry logic.
 
@@ -105,9 +103,7 @@ async def with_retry(
             await asyncio.sleep(delay)
 
 
-def with_sync_retry(
-    func: Callable[..., Any], config: ExponentialBackoffRetryConfig, *args, **kwargs
-) -> Any:
+def with_sync_retry(func: Callable[..., Any], config: ExponentialBackoffRetryConfig, *args, **kwargs) -> Any:
     """
     Execute a function with retry logic (synchronous version).
 

@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 class LoopNode(BaseNode):
     """
     A node that contains and repeatedly executes a sub-graph.
-    
+
     The LoopNode acts as a while loop - it executes its sub-graph repeatedly
     until the loop condition returns False or max iterations is reached.
-    
+
     Example usage:
         # Create sub-graph: b1 -> b2
         sub_graph = WorkflowGraph()
@@ -25,11 +25,11 @@ class LoopNode(BaseNode):
         sub_graph.add_edge("__start__", "b1")
         sub_graph.add_edge("b1", "b2")
         sub_graph.add_edge("b2", "__end__")
-        
+
         # Create loop condition
         def should_continue(output, iteration_count):
             return iteration_count < 5 and "continue" in output.lower()
-        
+
         # Create loop node
         loop_node = LoopNode("loop", sub_graph, should_continue)
     """
@@ -40,7 +40,7 @@ class LoopNode(BaseNode):
         sub_graph: "WorkflowGraph",
         loop_condition: Callable[[str, int], bool],
         max_iterations: int = 100,
-        max_execution_time: int = 300  # 5 minutes per loop execution
+        max_execution_time: int = 300,  # 5 minutes per loop execution
     ) -> None:
         """
         Initialize a loop node.
@@ -58,9 +58,9 @@ class LoopNode(BaseNode):
         """
         # Use a dummy function for BaseNode compatibility
         super().__init__(name, lambda x: x)
-        
+
         # Check if sub_graph has the expected WorkflowGraph interface
-        if not hasattr(sub_graph, 'nodes') or not hasattr(sub_graph, 'edges') or not hasattr(sub_graph, 'compile'):
+        if not hasattr(sub_graph, "nodes") or not hasattr(sub_graph, "edges") or not hasattr(sub_graph, "compile"):
             raise ValueError("sub_graph must be a WorkflowGraph instance")
         if not callable(loop_condition):
             raise ValueError("loop_condition must be callable")
@@ -74,7 +74,7 @@ class LoopNode(BaseNode):
         self.max_iterations = max_iterations
         self.max_execution_time = max_execution_time
         self._compiled_sub_graph: Optional[CompiledGraph] = None
-        
+
         logger.info(f"LoopNode '{name}' created with max_iterations={max_iterations}")
 
     def _compile_sub_graph(self) -> CompiledGraph:
@@ -87,48 +87,49 @@ class LoopNode(BaseNode):
     async def compute(self, input_data, *args, **kwargs) -> str:
         """
         Execute the loop by repeatedly running the sub-graph.
-        
+
         Args:
             input_data: Initial input to the first iteration of the sub-graph
-            
+
         Returns:
             str: The final output from the last iteration
-            
+
         Raises:
             Exception: If loop execution fails
         """
         try:
             compiled_sub_graph = self._compile_sub_graph()
-            
+
             current_input = str(input_data) if input_data is not None else ""
             iteration_count = 0
             loop_start_time = time.time()
-            
-            logger.info(f"LoopNode '{self.name}' starting execution (reusing compiled sub-graph) with input: {current_input[:100]}...")
-            
+
+            logger.info(
+                f"LoopNode '{self.name}' starting execution (reusing compiled sub-graph) with input: {current_input[:100]}..."
+            )
+
             while iteration_count < self.max_iterations:
                 iteration_count += 1
                 iteration_start_time = time.time()
-                
+
                 logger.debug(f"LoopNode '{self.name}' iteration {iteration_count}/{self.max_iterations}")
-                
+
                 # Execute sub-graph for this iteration
                 try:
                     # Keep execution memory for history - the fixed get_node_output() will return latest
                     logger.debug(f"LoopNode '{self.name}' iteration {iteration_count} input: {current_input}")
-                    
+
                     iteration_output = await compiled_sub_graph.execute(
-                        initial_input=current_input,
-                        max_execution_time=self.max_execution_time
+                        initial_input=current_input, max_execution_time=self.max_execution_time
                     )
                     logger.debug(f"LoopNode '{self.name}' iteration {iteration_count} output: {iteration_output}")
                 except Exception as e:
                     logger.error(f"LoopNode '{self.name}' iteration {iteration_count} failed: {e}")
                     raise Exception(f"Loop iteration {iteration_count} failed: {e}")
-                
+
                 iteration_time = time.time() - iteration_start_time
                 logger.debug(f"LoopNode '{self.name}' iteration {iteration_count} completed in {iteration_time:.2f}s")
-                
+
                 # Check loop condition
                 try:
                     logger.debug(f"LoopNode '{self.name}' calling loop condition with output: {iteration_output}")
@@ -137,24 +138,26 @@ class LoopNode(BaseNode):
                 except Exception as e:
                     logger.error(f"LoopNode '{self.name}' loop condition failed: {e}")
                     should_continue = False
-                
+
                 if not should_continue:
-                    logger.info(f"LoopNode '{self.name}' loop condition returned False, exiting after {iteration_count} iterations")
+                    logger.info(
+                        f"LoopNode '{self.name}' loop condition returned False, exiting after {iteration_count} iterations"
+                    )
                     return iteration_output
-                
+
                 # Prepare input for next iteration (current output becomes next input)
                 current_input = iteration_output
-                
+
                 # Check total loop time
                 total_loop_time = time.time() - loop_start_time
                 if total_loop_time > (self.max_execution_time * self.max_iterations):
                     logger.warning(f"LoopNode '{self.name}' exceeded total execution time, breaking loop")
                     return iteration_output
-            
+
             # Reached max iterations
             logger.warning(f"LoopNode '{self.name}' reached max iterations ({self.max_iterations}), ending loop")
             return current_input
-            
+
         except Exception as e:
             logger.error(f"LoopNode '{self.name}' failed: {e}")
             raise Exception(f"LoopNode execution failed: {e}")
@@ -164,41 +167,42 @@ class LoopNode(BaseNode):
         return {
             "sub_graph_nodes": list(self.sub_graph.nodes.keys()),
             "sub_graph_edges": {
-                source: [f"{edge.source}->{edge.target}" if hasattr(edge, 'target') else str(edge) 
-                        for edge in edges]
+                source: [f"{edge.source}->{edge.target}" if hasattr(edge, "target") else str(edge) for edge in edges]
                 for source, edges in self.sub_graph.edges.items()
             },
             "max_iterations": self.max_iterations,
-            "max_execution_time": self.max_execution_time
+            "max_execution_time": self.max_execution_time,
         }
 
     def get_loop_execution_history(self) -> List[Dict[str, Any]]:
         """
         Get the execution history of all loop iterations.
-        
+
         Returns:
             List of dictionaries containing execution steps for each iteration.
             Each dict has node_name, node_input, node_output, and iteration info.
         """
         if not self._compiled_sub_graph:
             return []
-        
+
         execution_steps = self._compiled_sub_graph.execution_state._exec_steps
-        
+
         # Group execution steps by iteration (rough estimation based on order)
         history = []
         for step in execution_steps:
-            history.append({
-                "node_name": step.node_name,
-                "node_input": str(step.node_input),
-                "node_output": step.node_output,
-                "step_index": len(history)
-            })
-        
+            history.append(
+                {
+                    "node_name": step.node_name,
+                    "node_input": str(step.node_input),
+                    "node_output": step.node_output,
+                    "step_index": len(history),
+                }
+            )
+
         return history
 
     def __str__(self) -> str:
         return f"LoopNode(name={self.name}, sub_graph_nodes={len(self.sub_graph.nodes)}, max_iterations={self.max_iterations})"
 
     def __repr__(self) -> str:
-        return self.__str__() 
+        return self.__str__()

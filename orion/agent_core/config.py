@@ -46,9 +46,7 @@ class LLMConfig:
 
     def __post_init__(self):
         """Validate configuration parameters after initialization."""
-        self.retry_config = (
-            ExponentialBackoffRetryConfig() if self.exponential_backoff_retry else None
-        )
+        self.retry_config = ExponentialBackoffRetryConfig() if self.exponential_backoff_retry else None
 
         if not self.llm_model:
             raise ValueError("llm_model cannot be empty")
