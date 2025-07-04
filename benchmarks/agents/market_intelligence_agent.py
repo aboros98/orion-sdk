@@ -21,7 +21,40 @@ from orion.tool_registry import tool
 # Market Intelligence Tools
 @tool
 def conduct_competitive_analysis(company_name: str, industry: str, competitors: List[str]) -> Dict[str, Any]:
-    """Conduct comprehensive competitive analysis for business strategy."""
+    """
+    Conduct comprehensive competitive analysis with market positioning and strategic insights.
+    
+    This tool performs detailed competitive analysis including market share assessment,
+    competitor profiling, SWOT analysis, and strategic recommendations for business planning.
+    
+    Args:
+        company_name (str): Name of the company conducting the analysis (your company).
+                          Used for context and positioning in the competitive landscape.
+                          Examples: "TechCorp", "StartupXYZ", "Enterprise Solutions Inc."
+        industry (str): Industry or market segment being analyzed. Should be specific
+                       to focus the competitive analysis effectively.
+                       Examples: "SaaS", "E-commerce", "Healthcare Technology", "Fintech"
+        competitors (List[str]): List of competitor company names to analyze.
+                               Should include direct competitors and market leaders.
+                               Minimum recommended: 3-5 competitors for comprehensive analysis.
+                               Examples: ["Competitor A", "Market Leader B", "Startup C"]
+    
+    Returns:
+        Dict[str, Any]: Comprehensive competitive analysis including:
+            - target_company: Company conducting the analysis
+            - industry: Target industry for analysis
+            - analysis_date: When the analysis was performed
+            - competitor_profiles: Detailed profiles of each competitor with strengths/weaknesses
+            - competitive_landscape: Market leaders, emerging players, and market gaps
+            - strategic_recommendations: Actionable recommendations for competitive positioning
+            - threat_level: Assessment of competitive threat level
+    
+    Example:
+        >>> competitors = ["Microsoft", "Google", "Amazon"]
+        >>> result = conduct_competitive_analysis("TechCorp", "Cloud Computing", competitors)
+        >>> print(result['threat_level'])
+        'Medium-High'
+    """
     try:
         # Simulate competitive research data (in real implementation, would use APIs and web scraping)
         analysis_results: Dict[str, Any] = {
@@ -90,7 +123,41 @@ def conduct_competitive_analysis(company_name: str, industry: str, competitors: 
 
 @tool
 def analyze_market_trends(industry: str, time_period: str = "12_months", focus_areas: Optional[List[str]] = None) -> Dict[str, Any]:
-    """Analyze market trends and growth opportunities for strategic planning."""
+    """
+    Analyze market trends, growth opportunities, and industry dynamics for strategic planning.
+    
+    This tool provides comprehensive market trend analysis including growth metrics, trend insights,
+    SWOT analysis, and investment climate assessment to inform business strategy decisions.
+    
+    Args:
+        industry (str): Industry or market segment to analyze. Should be specific for accurate trend analysis.
+                       Examples: "Technology", "Healthcare", "E-commerce", "Fintech", "Manufacturing"
+        time_period (str, optional): Time period for trend analysis. 
+                                   Options: "6_months", "12_months", "24_months", "5_years".
+                                   Default is "12_months".
+        focus_areas (Optional[List[str]], optional): Specific areas to focus the analysis on.
+                                                    If None, analyzes all major areas.
+                                                    Options: ["technology", "consumer_behavior", 
+                                                            "regulations", "economic_factors"].
+                                                    Default is None (analyzes all areas).
+    
+    Returns:
+        Dict[str, Any]: Comprehensive market trend analysis including:
+            - industry: Target industry analyzed
+            - analysis_period: Time period covered
+            - report_date: When the analysis was performed
+            - overall_market_health: Overall market condition assessment
+            - market_metrics: Market size, growth rate, and maturity indicators
+            - trend_insights: Detailed trends by focus area with impact levels and timelines
+            - swot_analysis: Opportunities and threats identification
+            - investment_climate: Funding availability, investor sentiment, and valuation trends
+    
+    Example:
+        >>> focus = ["technology", "consumer_behavior"]
+        >>> result = analyze_market_trends("E-commerce", "24_months", focus)
+        >>> print(result['overall_market_health'])
+        'Growing'
+    """
     try:
         if focus_areas is None:
             focus_areas = ["technology", "consumer_behavior", "regulations", "economic_factors"]
@@ -196,7 +263,37 @@ def analyze_market_trends(industry: str, time_period: str = "12_months", focus_a
 
 @tool
 def assess_customer_segments(industry: str, target_market: str, business_model: str) -> Dict[str, Any]:
-    """Analyze customer segments and market opportunities for business development."""
+    """
+    Analyze customer segments, market opportunities, and penetration strategies for business development.
+    
+    This tool provides detailed customer segmentation analysis including segment characteristics,
+    pain points, market size, growth potential, and strategic recommendations for targeting.
+    
+    Args:
+        industry (str): Industry or market sector being analyzed. Affects customer segment characteristics
+                       and market dynamics.
+                       Examples: "Technology", "Healthcare", "Retail", "Financial Services"
+        target_market (str): Specific market or geographic region to focus on. Can be broad or specific.
+                            Examples: "North America", "SMB market", "Enterprise customers", "Urban consumers"
+        business_model (str): Business model type that determines customer segment structure.
+                             Options: "B2B" (Business-to-Business), "B2C" (Business-to-Consumer).
+                             Affects segmentation approach and customer characteristics.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive customer segment analysis including:
+            - industry: Target industry for analysis
+            - target_market: Specific market focus
+            - business_model: B2B or B2C model used
+            - analysis_date: When the analysis was performed
+            - customer_segments: Detailed segment profiles with characteristics and pain points
+            - penetration_analysis: Current market penetration and untapped opportunities
+            - segment_recommendations: Strategic recommendations for segment targeting
+    
+    Example:
+        >>> result = assess_customer_segments("SaaS", "Enterprise market", "B2B")
+        >>> print(len(result['customer_segments']))
+        3
+    """
     try:
         # Customer segmentation analysis
         segment_analysis: Dict[str, Any] = {

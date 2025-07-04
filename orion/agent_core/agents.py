@@ -13,7 +13,7 @@ def build_async_agent(
     api_key: str,
     system_prompt: Optional[str] = None,
     temperature: float = 0.7,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
     top_p: float = 1.0,
     stream: bool = False,
     schema: Optional[type[BaseModel]] = None,

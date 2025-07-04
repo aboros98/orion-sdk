@@ -17,11 +17,43 @@ from orion.agent_core.utils import function_to_schema
 from orion.graph_core import WorkflowGraph
 from orion.tool_registry import tool
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Web Research Tools
 @tool
 def search_web(query: str, num_results: int = 5, search_type: str = "general") -> Dict[str, Any]:
-    """Search the web for information using various search engines."""
+    """
+    Perform comprehensive web search across multiple search engines with relevance scoring.
+    
+    This tool searches the web for information using various search engines and returns
+    structured results with relevance scores, timestamps, and source information for research purposes.
+    
+    Args:
+        query (str): Search query string. Should be specific and descriptive for better results.
+                    Examples: "latest AI developments 2024", "climate change impact on agriculture"
+        num_results (int, optional): Number of search results to return. 
+                                   Default is 5. Range: 1-20 for optimal performance.
+        search_type (str, optional): Type of search to perform. 
+                                   Options: "general", "news", "academic", "images", "videos".
+                                   Default is "general".
+    
+    Returns:
+        Dict[str, Any]: Structured search results including:
+            - query: Original search query
+            - search_type: Type of search performed
+            - timestamp: When the search was executed
+            - results: List of search results with titles, URLs, snippets, and relevance scores
+            - total_results: Number of results returned
+            - search_time: Time taken for the search
+    
+    Example:
+        >>> result = search_web("machine learning applications in healthcare", 3)
+        >>> print(len(result['results']))
+        3
+    """
     try:
         # Simulate web search results (in real implementation, would use search APIs)
         search_results = {
@@ -63,7 +95,34 @@ def search_web(query: str, num_results: int = 5, search_type: str = "general") -
 
 @tool
 def scrape_webpage(url: str, extract_type: str = "content") -> Dict[str, Any]:
-    """Scrape content from a specific webpage."""
+    """
+    Extract and parse content from web pages with structured data extraction.
+    
+    This tool scrapes web pages to extract various types of content including text, metadata,
+    and structured information for research and analysis purposes.
+    
+    Args:
+        url (str): Complete URL of the webpage to scrape. Must be a valid HTTP/HTTPS URL.
+                  Examples: "https://example.com/article", "https://news.site.com/story"
+        extract_type (str, optional): Type of content to extract from the webpage.
+                                    Options: "content" (main text), "metadata" (page info),
+                                    "links" (hyperlinks), "images" (image data).
+                                    Default is "content".
+    
+    Returns:
+        Dict[str, Any]: Structured webpage data including:
+            - url: Original URL that was scraped
+            - extract_type: Type of extraction performed
+            - timestamp: When the scraping was executed
+            - status: Success or error status
+            - content: Extracted content based on extract_type
+            - word_count: Number of words in extracted content
+    
+    Example:
+        >>> result = scrape_webpage("https://example.com/news", "content")
+        >>> print(result['status'])
+        'success'
+    """
     try:
         # Simulate webpage scraping (in real implementation, would use actual scraping)
         scraped_data = {
@@ -112,7 +171,35 @@ def scrape_webpage(url: str, extract_type: str = "content") -> Dict[str, Any]:
 
 @tool
 def analyze_web_content(content: str, analysis_type: str = "summary") -> Dict[str, Any]:
-    """Analyze and extract insights from web content."""
+    """
+    Analyze web content using various NLP techniques for insights and information extraction.
+    
+    This tool performs different types of content analysis including summarization, sentiment analysis,
+    and entity extraction to help users understand and extract insights from web content.
+    
+    Args:
+        content (str): Text content to analyze. Should be meaningful text content from web pages,
+                      articles, or other sources. Minimum recommended length: 50 characters.
+        analysis_type (str, optional): Type of analysis to perform on the content.
+                                     Options: "summary" (key points and summary),
+                                     "sentiment" (positive/negative/neutral analysis),
+                                     "entities" (extract people, organizations, locations, dates).
+                                     Default is "summary".
+    
+    Returns:
+        Dict[str, Any]: Analysis results including:
+            - analysis_type: Type of analysis performed
+            - timestamp: When the analysis was executed
+            - content_length: Length of analyzed content
+            - summary/key_points: For summary analysis
+            - sentiment/confidence: For sentiment analysis
+            - entities: For entity extraction analysis
+    
+    Example:
+        >>> result = analyze_web_content("This is a positive article about AI developments.", "sentiment")
+        >>> print(result['sentiment'])
+        'positive'
+    """
     try:
         analysis_results = {
             "analysis_type": analysis_type,
@@ -176,7 +263,35 @@ def analyze_web_content(content: str, analysis_type: str = "summary") -> Dict[st
 
 @tool
 def fact_check_information(claim: str, sources: List[str]) -> Dict[str, Any]:
-    """Fact-check information against multiple sources."""
+    """
+    Verify factual claims against multiple sources with reliability scoring and verification status.
+    
+    This tool fact-checks information by comparing claims against provided sources and
+    provides verification status, confidence scores, and source reliability assessments.
+    
+    Args:
+        claim (str): The factual claim to verify. Should be a specific, verifiable statement.
+                    Examples: "The population of New York City is 8.8 million people",
+                             "Global temperatures have increased by 1.1°C since pre-industrial times"
+        sources (List[str]): List of source URLs or references to check the claim against.
+                           Should be credible sources like news sites, academic papers, or official reports.
+                           Minimum recommended: 2 sources for reliable verification.
+    
+    Returns:
+        Dict[str, Any]: Fact-checking results including:
+            - claim: Original claim being verified
+            - sources_checked: Number of sources analyzed
+            - timestamp: When the fact-check was performed
+            - verification_status: Overall verification result (verified/unverified/contested)
+            - confidence_score: Confidence level in the verification (0.0 to 1.0)
+            - source_verifications: Detailed analysis of each source
+    
+    Example:
+        >>> sources = ["https://census.gov", "https://nyc.gov"]
+        >>> result = fact_check_information("NYC population is 8.8 million", sources)
+        >>> print(result['verification_status'])
+        'verified'
+    """
     try:
         fact_check_results = {
             "claim": claim,
@@ -217,7 +332,36 @@ def fact_check_information(claim: str, sources: List[str]) -> Dict[str, Any]:
 
 @tool
 def synthesize_research(query: str, sources: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Synthesize information from multiple sources into a comprehensive report."""
+    """
+    Synthesize information from multiple sources into a comprehensive research report.
+    
+    This tool combines and analyzes information from multiple sources to create a cohesive
+    research report with key findings, conclusions, and recommendations.
+    
+    Args:
+        query (str): The research question or topic being investigated. Should be specific
+                    and focused to guide the synthesis process.
+                    Examples: "Impact of AI on healthcare", "Climate change mitigation strategies"
+        sources (List[Dict[str, Any]]): List of source dictionaries containing research data.
+                                      Each source should have content, metadata, and analysis results.
+                                      Minimum recommended: 3 sources for comprehensive synthesis.
+                                      Sources should be from search_web, scrape_webpage, or analyze_web_content.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive research synthesis including:
+            - query: Original research question
+            - sources_analyzed: Number of sources used in synthesis
+            - timestamp: When the synthesis was performed
+            - report: Executive summary, key findings, methodology, conclusions, and recommendations
+            - source_analysis: Reliability and contribution analysis for each source
+            - confidence_level: Overall confidence in the synthesis (High/Medium/Low)
+    
+    Example:
+        >>> sources = [{"content": "AI improves diagnosis accuracy"}, {"content": "AI reduces costs"}]
+        >>> result = synthesize_research("AI in healthcare", sources)
+        >>> print(result['confidence_level'])
+        'Medium'
+    """
     try:
         synthesis_results = {
             "query": query,

@@ -154,20 +154,22 @@ class PlanningAgent:
 
         # Get execution summary for references
         execution_summary = "No previous work completed."
-        if hasattr(self, "_execution_memory") and self._execution_memory:
-            execution_summary = self._execution_memory.get_summary_for_orchestrator()
 
         # Simple prompt with just the dynamic context - the system prompt already has all the methodology
-        prompt = f"""AVAILABLE TOOLS:
+        prompt = f"""<available_tools>
 {graph_capabilities}
+</available_tools>
 
-WORK ALREADY DONE:
+<work_already_done>
 {execution_summary}
+</work_already_done>
 
-USER REQUEST:
+<user_request>
 {user_request}
+</user_request>
 
-Please create an executable plan for this request."""
+Please create an executable plan for this request.
+"""
 
         try:
             if not self.planning_agent:
@@ -208,23 +210,27 @@ Please create an executable plan for this request."""
         # Build prompt with validation context if provided
         validation_section = ""
         if validation_context:
-            validation_section = f"""
-
-TASK VALIDATION ASSESSMENT:
-{validation_context}"""
-
-        # Simple prompt with just the dynamic context - the system prompt already has all the methodology
-        prompt = f"""ORIGINAL REQUEST:
+            validation_section = f"""<task_validation_assessment>
+{validation_context}
+</task_validation_assessment>"""
+        
+        prompt = f"""<original_request>
 {original_request}
+</original_request>
 
-CURRENT PLAN:
+<current_plan>
 {current_plan}
+</current_plan>
 
-WHAT ACTUALLY HAPPENED:
-{execution_history}{validation_section}
-
-AVAILABLE TOOLS:
+<available_tools>
 {graph_capabilities}
+</available_tools>
+
+<execution_history>
+{execution_history}
+</execution_history>
+
+{validation_section}
 
 Please revise the plan based on the execution results following your standard revision methodology."""
 
@@ -233,6 +239,7 @@ Please revise the plan based on the execution results following your standard re
                 raise RuntimeError("Revision agent not initialized. Call `create` to instantiate.")
 
             response = await self.revision_agent(prompt=prompt)
+
             thinking, is_plan_on_track, revised_plan_content = (
                 response.thinking,
                 response.should_revise,
@@ -368,7 +375,3 @@ Please revise the plan based on the execution results following your standard re
     def _create_fallback_plan(self, user_request: str) -> str:
         """Create a fallback plan if planning fails"""
         return FALLBACK_PLAN_TEMPLATE.format(user_request=user_request)
-
-    def set_execution_memory(self, execution_memory: ExecutionMemory) -> None:
-        """Set the execution memory for reference support."""
-        self._execution_memory = execution_memory

@@ -28,10 +28,12 @@ class ImprovedSystemPrompt(BaseModel):
 
 
 class TaskValidationResult(BaseModel):
-    reasoning: str = Field(
+    thinking: str = Field(
         description="Detailed explanation of the assessment, including what was expected vs what was achieved"
     )
-    status: Literal["COMPLETE", "INCOMPLETE"] = Field(description="Whether the task was completed successfully or not")
-    justification: Optional[str] = Field(
-        description="How this task status affects subsequent tasks in the workflow. Use 'N/A' if task is completed successfully"
-    )
+    validation_status: Literal["COMPLETE", "INCOMPLETE", "PARTIAL"] = Field(description="Whether the task was completed successfully or not")
+    completion_reasoning: str = Field(description="Specific evidence of successful objective accomplishment")
+    usable_components: Optional[str] = Field(description="Which parts of output can support downstream work")
+    remaining_issues: Optional[str] = Field(description="Specific problems that need resolution")
+    workflow_impact: Optional[str] = Field(description="How issues prevent downstream task progression")
+    resolution_guidance: Optional[str] = Field(description="Targeted improvements needed for full completion")

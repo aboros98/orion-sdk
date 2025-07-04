@@ -75,8 +75,6 @@ class PlanningExecutor:
         Returns:
             Final response to the user
         """
-        self.original_request = user_request
-
         print(f"🎯 Starting dynamic planning execution for: {user_request}")
 
         # Create initial plan with ReAct reasoning
@@ -87,6 +85,7 @@ class PlanningExecutor:
         if not self.task_validation_agent:
             raise RuntimeError("Task validation agent not initialized. Call create() to instantiate.")
 
+        self.original_request = user_request
         self.current_plan = await self.planning_agent.create_executable_plan(user_request)
 
         # Save initial plan and reasoning
@@ -113,25 +112,48 @@ class PlanningExecutor:
                 # Execute the task through the graph
                 result = await self._execute_task(current_task)
 
-                validation_result = await self.task_validation_agent.validate_task(current_task, result)
+                validation_result = await self.task_validation_agent.validate_task(
+                    current_task, result, remaining_tasks_in_plan=tasks[1:], original_user_request=self.original_request
+                )
 
-                if validation_result.status == "COMPLETE":
+                if validation_result.validation_status == "COMPLETE":
                     print(f"✅ Task validated as complete")
                     # Update plan status only if validated as complete
                     self.current_plan = self.planning_agent.update_plan_status(self.current_plan, current_task)
                     completed_count += 1
                 else:
                     print(f"❌ Task validation failed")
+                    if self.compiled_graph.execution_state._exec_steps[-1].node_output == result:
+                        self.compiled_graph.execution_state._exec_steps = self.compiled_graph.execution_state._exec_steps[:-1]
+
                     # Force plan revision due to task validation failure
                     print("🔄 Forcing plan revision due to task validation failure...")
                     execution_memory = self.compiled_graph.execution_state
 
                     # Add validation information for revision context
                     # This helps the revision agent understand why the task failed
-                    validation_context = f"""**task_validator** (Assessment):
-Task: {current_task}
-Status: {validation_result.status}
-Workflow Impact: {validation_result.justification}"""
+                    validation_context = f"""**task_validator** (Assessment)**:
+<current_task>
+{current_task}
+</current_task>
+
+<status>
+{validation_result.validation_status}
+</status>
+
+<reasoning>
+{validation_result.completion_reasoning}
+</reasoning>
+
+{f"<issues>{validation_result.remaining_issues}</issues>" if validation_result.validation_status == "INCOMPLETE" else ""}
+
+{f"<workflow_impact>{validation_result.workflow_impact}</workflow_impact>" if validation_result.validation_status == "INCOMPLETE" else ""}
+
+{f"<resolution_guidance>{validation_result.resolution_guidance}</resolution_guidance>" if validation_result.validation_status == "INCOMPLETE" else ""}
+
+<current_task_output>
+{result[:300] + "..." if len(result) > 300 else result}
+</current_task_output>"""
 
                     revised_plan = await self.planning_agent.revise_plan(
                         self.current_plan,
@@ -217,7 +239,7 @@ Workflow Impact: {validation_result.justification}"""
 
         # Generate final response
         print(f"\n📊 Execution complete: {completed_count} tasks completed, {revision_count} revisions")
-
+        self.compiled_graph.execution_state.clear_execution_traces()
         return result
 
     async def _execute_task(self, task: str) -> str:

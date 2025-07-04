@@ -35,8 +35,8 @@ def create_orchestrator(
     llm_model: str,
     base_url: str,
     api_key: str,
-    temperature: float = 0.0,
-    max_tokens: int = 1024,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
     top_p: float = 1.0,
     **kwargs,
 ):
@@ -66,6 +66,6 @@ def create_orchestrator(
         max_tokens=max_tokens,
         top_p=top_p,
         tools=tools,
-        tool_choice="required",
-        exponential_backoff_retry=True,
+        tool_choice="auto",
+        exponential_backoff_retry=True
     )

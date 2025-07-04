@@ -123,12 +123,12 @@ class WorkflowGraph:
 
     def add_human_in_the_loop(self, orchestrator_node_name: str):
         """
-        Adds a HumanInTheLoopNode and connects it cyclically to an orchestrator.
-        It also dynamically registers the clarification node as a tool for the agent.
+        Adds a HumanInTheLoopNode and connects it to an orchestrator for dynamic human interaction.
+        The orchestrator can use this node when it needs clarification, guidance, or confirmation
+        from the user to proceed correctly with task execution.
 
         Args:
             orchestrator_node_name (str): The name of the orchestrator node.
-            agent (Any): The agent instance whose .tools attribute will be updated.
         """
         if orchestrator_node_name not in self.nodes:
             raise ValueError(f"Orchestrator node '{orchestrator_node_name}' not found.")
@@ -157,18 +157,19 @@ class WorkflowGraph:
             "type": "function",
             "function": {
                 "name": hil_node_name,
-                "description": "DO NOT USE THIS TOOL unless the user's task specifically requests asking for user input, clarification, or confirmation. This tool interrupts task execution to ask the user questions. If the task does not explicitly mention getting user input, then DO NOT use this tool - instead, make reasonable assumptions and complete the task with other available tools. Only use this when the task itself says to ask the user something.",
+                "description": "Use this tool when you need human clarification, guidance, or input to proceed correctly. This tool should be used when: the user's request is unclear or ambiguous, you need confirmation for important decisions, critical information is missing, multiple valid interpretations exist, or the task explicitly involves user interaction. This enables dynamic workflow adaptation based on human guidance and ensures tasks are completed according to user intent.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "original_input": {
                             "type": "string",
-                            "description": "The original user request that explicitly requires human input.",
+                            "description": "The original user request or current task context that needs clarification or human input.",
                         },
                         "clarification_prompt": {
                             "type": "string",
                             "description": (
-                                "A courteous question or request for confirmation presented to the user. "
+                                "A clear, courteous question or request for clarification presented to the user. "
+                                "Be specific about what information you need and why it's important for completing the task correctly. "
                                 "If multiple details are required, format the prompt as an enumerated list so it is easy for the user to respond to each item."
                             ),
                         },

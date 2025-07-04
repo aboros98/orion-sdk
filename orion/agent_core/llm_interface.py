@@ -143,14 +143,14 @@ async def get_response(
             response_format=schema,
             **config.to_dict(),
         )
-
-        if schema:
+        
+        if _has_tool_calls(response):
+            return _parse_tool_call(response)
+        elif schema:
             return _get_parsed_response(response)
 
         if _is_stream_response(response):
             return _create_async_stream_generator(response)
-        elif _has_tool_calls(response):
-            return _parse_tool_call(response)
         else:
             return _get_response_content(response)
 
@@ -217,13 +217,12 @@ def get_sync_response(
             **config.to_dict(),
         )
 
+        if _has_tool_calls(response):
+            return _parse_tool_call(response)
         if schema:
             return _get_parsed_response(response)
-
         if _is_stream_response(response):
             return _create_sync_stream_generator(response)
-        elif _has_tool_calls(response):
-            return _parse_tool_call(response)
         else:
             return _get_response_content(response)
 

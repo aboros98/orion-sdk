@@ -12,10 +12,46 @@ from orion.graph_core import WorkflowGraph
 from orion.tool_registry import tool
 
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 # Music Therapy Tools
 @tool
 def create_anxiety_relief_composition(anxiety_level: str, duration_minutes: int, musical_preferences: List[str]) -> Dict[str, Any]:
-    """Create therapeutic music composition specifically designed for anxiety relief."""
+    """
+    Create a therapeutic music composition tailored for anxiety relief using evidence-based music therapy techniques.
+    
+    This tool generates a personalized music composition plan for anxiety reduction, including musical parameters,
+    structure, therapeutic techniques, and adaptation to user preferences.
+    
+    Args:
+        anxiety_level (str): Severity of anxiety to address. Options: "mild", "moderate", "severe".
+                          Determines musical parameters and therapeutic approach.
+        duration_minutes (int): Desired duration of the composition in minutes. Must be positive.
+        musical_preferences (List[str]): List of user musical preferences for personalization.
+                                       Examples: ["classical", "ambient", "nature", "orchestra", "electronic"]
+    
+    Returns:
+        Dict[str, Any]: Detailed music composition plan including:
+            - title: Name of the composition
+            - therapeutic_purpose: Intended therapeutic outcome
+            - target_condition: Anxiety level addressed
+            - duration_minutes: Total duration
+            - musical_parameters: Key, tempo, rhythm, instruments, dynamics, progression
+            - structure: Section breakdown (intro, development, resolution)
+            - therapeutic_techniques: List of music therapy techniques used
+            - personalization: Adaptation notes and preferred instruments
+            - usage_instructions: How to use the composition for best results
+            - expected_outcomes: Anticipated therapeutic benefits
+    
+    Example:
+        >>> prefs = ["classical", "nature"]
+        >>> result = create_anxiety_relief_composition("moderate", 20, prefs)
+        >>> print(result['musical_parameters']['key_signature'])
+        'F Major'
+    """
     try:
         # Therapeutic music parameters for anxiety
         anxiety_params = {

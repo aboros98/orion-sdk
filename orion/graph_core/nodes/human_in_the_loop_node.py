@@ -26,15 +26,29 @@ logger = logging.getLogger(__name__)
 
 class HumanInTheLoopNode(BaseNode):
     """
-    A node that asks for human clarification during workflow execution.
-    The compute function for this node is predefined.
+    A node that enables human interaction during workflow execution for clarification,
+    guidance, and decision-making support.
+
+    This node should be used by planners and orchestrators when:
+    - Something is unclear or ambiguous in the user's request
+    - Human input or confirmation is needed to proceed correctly
+    - The system needs to ask the user questions or seek clarification
+    - A decision point requires human judgment or preference
+    - The task explicitly involves getting user input or feedback
+
+    The orchestrator should redirect to this node whenever it encounters:
+    - Ambiguous instructions that could be interpreted multiple ways
+    - Missing critical information needed to complete a task
+    - Situations where human expertise or judgment is required
+    - Tasks that explicitly request user interaction or confirmation
+    - Decision points where multiple valid approaches exist
 
     This node:
-    - Expects a ToolCall input with 'original_input' and 'clarification_prompt'.
-    - Presents the clarification prompt to the user.
-    - Waits for user input via the console.
-    - Concatenates the clarification with the original input.
-    - Returns the enhanced input for further processing.
+    - Expects a ToolCall input with 'original_input' and 'clarification_prompt'
+    - Presents the clarification prompt to the user via console
+    - Waits for user input and incorporates it into the workflow
+    - Returns enhanced input combining the original request with user clarification
+    - Enables dynamic workflow adaptation based on human guidance
     """
 
     def __init__(self, name: str) -> None:

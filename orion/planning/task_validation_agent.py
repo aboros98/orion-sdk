@@ -43,7 +43,7 @@ class TaskValidationAgent:
             exponential_backoff_retry=True,
         )
 
-    async def validate_task(self, current_task: str, actual_output: str) -> TaskValidationResult:
+    async def validate_task(self, current_task: str, actual_output: str, remaining_tasks_in_plan: str, original_user_request: str) -> TaskValidationResult:
         """
         Validate whether a task has been completed successfully.
 
@@ -56,14 +56,24 @@ class TaskValidationAgent:
         """
         if not self.validation_agent:
             raise RuntimeError("Validation agent not initialized. Call `create` to instantiate.")
-
-        prompt = f"""CURRENT TASK:
+        
+        prompt = f"""<task_objective>
 {current_task}
+</task_objective>
 
-ACTUAL OUTPUT:
+<task_output>
 {actual_output}
+</task_output>
 
-Please assess whether this task has been completed successfully."""
+<next_tasks>
+{remaining_tasks_in_plan}
+</next_tasks>
+
+<overall_objective>
+{original_user_request}
+</overall_objective>
+
+Please assess whether this task has been completed successfully and provides suitable output for the remaining workflow."""
 
         response = await self.validation_agent(prompt=prompt)
 

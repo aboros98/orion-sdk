@@ -4,16 +4,16 @@ Provides personalized music therapy interventions for various psychological and 
 """
 
 import os
-import asyncio
-import json
-import random
-import math
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
-from orion.agent_core import create_orchestrator, build_async_agent
+from typing import Dict, Any, List
+from orion.agent_core import create_orchestrator
 from orion.agent_core.utils import function_to_schema
 from orion.graph_core import WorkflowGraph
 from orion.tool_registry import tool
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Music Therapy Tools
@@ -140,12 +140,6 @@ def design_cognitive_enhancement_music(cognitive_goal: str, session_length: int,
                 "instruments": ["strings", "woodwinds", "focused_tones"],
                 "techniques": ["selective attention cues", "distraction filtering", "sustained focus"]
             },
-            "executive_function": {
-                "frequency_focus": "Theta waves (4-8Hz)",
-                "rhythm_pattern": "Complex polyrhythms",
-                "instruments": ["multiple_layers", "orchestral", "structured_complexity"],
-                "techniques": ["task switching cues", "working memory challenges", "inhibitory control"]
-            },
             "creativity_boost": {
                 "frequency_focus": "Alpha waves (8-13Hz)",
                 "rhythm_pattern": "Free-flowing with creative spaces",
@@ -202,15 +196,6 @@ def design_cognitive_enhancement_music(cognitive_goal: str, session_length: int,
             }
         }
         
-        # Neuroplasticity-based recommendations
-        neuroplasticity_factors = [
-            "Consistent practice schedule (daily 20-30 minutes)",
-            "Progressive difficulty increase",
-            "Multi-sensory engagement",
-            "Attention to emotional response",
-            "Rest periods for consolidation"
-        ]
-        
         enhancement_protocol = {
             "protocol_name": f"Cognitive Enhancement - {cognitive_goal.title()}",
             "target_cognitive_domain": cognitive_goal,
@@ -219,7 +204,6 @@ def design_cognitive_enhancement_music(cognitive_goal: str, session_length: int,
             "musical_protocol": protocol,
             "session_structure": session_phases,
             "difficulty_parameters": difficulty_settings.get(difficulty_level.lower(), difficulty_settings["beginner"]),
-            "neuroplasticity_principles": neuroplasticity_factors,
             "expected_benefits": [
                 f"Improved {cognitive_goal} performance",
                 "Enhanced neural connectivity",
@@ -267,20 +251,6 @@ def create_mood_regulation_playlist(current_mood: str, target_mood: str, transit
                 "dynamics": "moderate_to_soft",
                 "emotional_tone": "validating_to_peaceful"
             },
-            "stressed": {
-                "tempo": (45, 65),
-                "key": "pentatonic",
-                "instruments": ["meditation_bells", "ambient_pads", "breathing_sounds"],
-                "dynamics": "very_soft",
-                "emotional_tone": "grounding_centering"
-            },
-            "energetic": {
-                "tempo": (70, 90),
-                "key": "major",
-                "instruments": ["upbeat_acoustic", "light_percussion", "positive_vocals"],
-                "dynamics": "moderate",
-                "emotional_tone": "uplifting_motivating"
-            },
             "calm": {
                 "tempo": (60, 80),
                 "key": "major",
@@ -299,7 +269,7 @@ def create_mood_regulation_playlist(current_mood: str, target_mood: str, transit
         phase_duration = transition_time / num_phases
         
         for i in range(num_phases):
-            progress = i / (num_phases - 1)
+            progress = i / (num_phases - 1) if num_phases > 1 else 1
             
             # Interpolate between current and target
             phase_tempo = (
@@ -320,38 +290,22 @@ def create_mood_regulation_playlist(current_mood: str, target_mood: str, transit
             }
             transition_phases.append(phase)
         
-        # Therapeutic interventions
-        intervention_techniques = {
-            "current_mood_validation": f"Acknowledge and validate {current_mood} feelings",
-            "gradual_shift": "Slowly guide emotional state toward target",
-            "positive_anchoring": "Establish positive emotional associations",
-            "consolidation": "Reinforce new emotional state"
-        }
-        
-        # Personalized recommendations
-        usage_recommendations = [
-            "Listen in a comfortable, private space",
-            "Use during natural transition periods",
-            "Practice deep breathing during listening",
-            "Journal about emotional changes if helpful",
-            "Repeat daily for best results"
-        ]
-        
         mood_regulation_plan = {
             "therapy_plan": f"Mood Regulation: {current_mood.title()} → {target_mood.title()}",
             "current_mood_profile": current_params,
             "target_mood_profile": target_params,
             "transition_duration": transition_time,
             "transition_phases": transition_phases,
-            "intervention_techniques": intervention_techniques,
-            "usage_recommendations": usage_recommendations,
+            "usage_recommendations": [
+                "Listen in a comfortable, private space",
+                "Use during natural transition periods",
+                "Practice deep breathing during listening"
+            ],
             "success_indicators": [
                 "Gradual mood improvement",
                 "Reduced emotional intensity",
-                "Increased emotional awareness",
-                "Better mood regulation skills"
-            ],
-            "clinical_notes": "Monitor for any adverse emotional reactions and adjust accordingly"
+                "Increased emotional awareness"
+            ]
         }
         
         return mood_regulation_plan
@@ -371,18 +325,6 @@ def develop_sleep_therapy_soundscape(sleep_issue: str, sleep_duration: int, envi
                 "tempo": (40, 50),
                 "instruments": ["ambient_drones", "soft_strings", "whispered_vocals"],
                 "techniques": ["progressive_relaxation", "sleep_induction", "anxiety_reduction"]
-            },
-            "sleep_maintenance": {
-                "wave_pattern": "Theta waves (4-8Hz)",
-                "tempo": (30, 45),
-                "instruments": ["continuous_tones", "nature_sounds", "minimal_percussion"],
-                "techniques": ["sustained_sleep", "dream_enhancement", "night_terror_prevention"]
-            },
-            "early_waking": {
-                "wave_pattern": "Alpha waves (8-13Hz) transitioning to Delta",
-                "tempo": (45, 60),
-                "instruments": ["gradual_fade", "morning_prevention", "extended_sleep_cues"],
-                "techniques": ["sleep_extension", "circadian_regulation", "morning_anxiety_reduction"]
             },
             "restless_sleep": {
                 "wave_pattern": "Consistent Delta waves",
@@ -409,45 +351,6 @@ def develop_sleep_therapy_soundscape(sleep_issue: str, sleep_duration: int, envi
                     "frequency_range": "Very low frequencies",
                     "volume": "Minimal"
                 }
-            elif factor.lower() == "temperature":
-                environmental_adaptations["temperature_comfort"] = {
-                    "technique": "Cooling soundscape",
-                    "frequency_range": "Mid-range frequencies",
-                    "volume": "Gentle"
-                }
-        
-        # Sleep cycle optimization
-        sleep_phases = {
-            "preparation": {
-                "duration": sleep_duration * 0.15,
-                "purpose": "Sleep onset preparation",
-                "music_type": "Calming, anxiety-reducing tones"
-            },
-            "sleep_induction": {
-                "duration": sleep_duration * 0.25,
-                "purpose": "Transition to sleep",
-                "music_type": "Progressive relaxation soundscape"
-            },
-            "deep_sleep": {
-                "duration": sleep_duration * 0.50,
-                "purpose": "Maintain deep sleep",
-                "music_type": "Minimal, consistent background"
-            },
-            "sleep_maintenance": {
-                "duration": sleep_duration * 0.10,
-                "purpose": "Prevent early waking",
-                "music_type": "Gentle, reassuring tones"
-            }
-        }
-        
-        # Clinical recommendations
-        clinical_recommendations = [
-            "Use consistently for 2-3 weeks for optimal results",
-            "Combine with sleep hygiene practices",
-            "Monitor sleep quality improvements",
-            "Adjust volume to barely audible level",
-            "Consider sleep study if issues persist"
-        ]
         
         sleep_therapy_plan = {
             "therapy_protocol": f"Sleep Therapy for {sleep_issue.title()}",
@@ -455,19 +358,11 @@ def develop_sleep_therapy_soundscape(sleep_issue: str, sleep_duration: int, envi
             "total_duration": sleep_duration,
             "therapeutic_protocol": protocol,
             "environmental_adaptations": environmental_adaptations,
-            "sleep_phase_structure": sleep_phases,
-            "clinical_recommendations": clinical_recommendations,
             "expected_outcomes": [
                 "Improved sleep onset time",
                 "Enhanced sleep quality",
                 "Reduced nighttime awakenings",
                 "Better morning alertness"
-            ],
-            "monitoring_metrics": [
-                "Time to fall asleep",
-                "Number of awakenings",
-                "Sleep quality rating",
-                "Morning mood assessment"
             ]
         }
         
@@ -477,141 +372,13 @@ def develop_sleep_therapy_soundscape(sleep_issue: str, sleep_duration: int, envi
         return {"error": f"Sleep therapy soundscape error: {str(e)}"}
 
 
-@tool
-def create_pain_management_audio(pain_type: str, pain_level: int, session_duration: int) -> Dict[str, Any]:
-    """Create therapeutic audio for pain management and chronic pain relief."""
-    try:
-        # Pain management protocols
-        pain_protocols = {
-            "chronic_pain": {
-                "frequency_focus": "Low frequency vibrations (40-100Hz)",
-                "rhythm_pattern": "Slow, steady, predictable",
-                "instruments": ["low_strings", "singing_bowls", "gentle_percussion"],
-                "techniques": ["distraction", "endorphin_release", "nervous_system_calming"]
-            },
-            "acute_pain": {
-                "frequency_focus": "Mid-range frequencies (200-800Hz)",
-                "rhythm_pattern": "Breathing-synchronized",
-                "instruments": ["flute", "soft_piano", "nature_sounds"],
-                "techniques": ["immediate_relief", "stress_reduction", "focus_redirection"]
-            },
-            "headache": {
-                "frequency_focus": "Gentle mid-range (300-600Hz)",
-                "rhythm_pattern": "Slow, flowing",
-                "instruments": ["ambient_pads", "soft_rain", "distant_chimes"],
-                "techniques": ["tension_release", "circulation_improvement", "relaxation_response"]
-            },
-            "muscle_tension": {
-                "frequency_focus": "Rhythmic pulses (60-80Hz)",
-                "rhythm_pattern": "Massage-like rhythm",
-                "instruments": ["rhythmic_drones", "pulsing_tones", "wave_sounds"],
-                "techniques": ["muscle_relaxation", "tension_release", "circulation_enhancement"]
-            }
-        }
-        
-        protocol = pain_protocols.get(pain_type.lower(), pain_protocols["chronic_pain"])
-        
-        # Pain level adjustments
-        pain_level_adjustments = {
-            "low": (1, 3),
-            "moderate": (4, 6),
-            "high": (7, 10)
-        }
-        
-        if pain_level <= 3:
-            intensity_level = "low"
-        elif pain_level <= 6:
-            intensity_level = "moderate"
-        else:
-            intensity_level = "high"
-        
-        # Session structure for pain relief
-        session_structure = {
-            "preparation": {
-                "duration": session_duration * 0.10,
-                "purpose": "Pain acknowledgment and preparation",
-                "techniques": ["breathing_preparation", "mindfulness_grounding"]
-            },
-            "acute_intervention": {
-                "duration": session_duration * 0.30,
-                "purpose": "Immediate pain relief",
-                "techniques": ["distraction", "endorphin_stimulation", "nervous_system_regulation"]
-            },
-            "sustained_relief": {
-                "duration": session_duration * 0.50,
-                "purpose": "Ongoing pain management",
-                "techniques": ["deep_relaxation", "pain_signal_interruption", "healing_visualization"]
-            },
-            "integration": {
-                "duration": session_duration * 0.10,
-                "purpose": "Relief consolidation",
-                "techniques": ["positive_anchoring", "self_efficacy_building"]
-            }
-        }
-        
-        # Evidence-based techniques
-        evidence_based_techniques = [
-            "Gate control theory application",
-            "Endogenous opioid system activation",
-            "Neuroplasticity-based pain reduction",
-            "Autonomic nervous system regulation",
-            "Mindfulness-based pain management"
-        ]
-        
-        # Clinical integration
-        clinical_integration = {
-            "use_with_medication": "Can complement but not replace prescribed medications",
-            "frequency_of_use": "2-3 times daily or as needed",
-            "contraindications": "None known for audio therapy",
-            "monitoring_required": "Track pain levels and functional improvement"
-        }
-        
-        pain_management_protocol = {
-            "protocol_name": f"Pain Management Audio - {pain_type.title()}",
-            "target_condition": pain_type,
-            "pain_level": pain_level,
-            "intensity_category": intensity_level,
-            "session_duration": session_duration,
-            "therapeutic_protocol": protocol,
-            "session_structure": session_structure,
-            "evidence_based_techniques": evidence_based_techniques,
-            "clinical_integration": clinical_integration,
-            "expected_outcomes": [
-                "Reduced pain intensity",
-                "Improved pain coping",
-                "Better quality of life",
-                "Reduced medication dependence"
-            ],
-            "success_metrics": [
-                "Pain scale rating improvement",
-                "Functional activity increase",
-                "Sleep quality improvement",
-                "Mood enhancement"
-            ]
-        }
-        
-        return pain_management_protocol
-        
-    except Exception as e:
-        return {"error": f"Pain management audio error: {str(e)}"}
-
-
-async def music_therapy_agent(therapy_query: str) -> str:
-    """Music therapy agent that provides personalized therapeutic music interventions."""
-    try:
-        # This would integrate with the orchestrator to analyze the query and route to appropriate tools
-        return f"Processing music therapy intervention for: {therapy_query}"
-    except Exception as e:
-        return f"Error in music therapy analysis: {str(e)}"
-
-
 class MusicTherapyAgent:
     """Real-world music therapy agent for mental health and cognitive enhancement."""
     
     def __init__(self):
         self.name = "MusicTherapyAgent"
         self.complexity_level = 8
-        self.description = "Real-world music therapy agent for anxiety relief, cognitive enhancement, mood regulation, and pain management"
+        self.description = "Real-world music therapy agent for anxiety relief, cognitive enhancement, mood regulation, and sleep therapy"
     
     async def create_workflow(self) -> WorkflowGraph:
         """Create the music therapy workflow."""
@@ -622,90 +389,48 @@ class MusicTherapyAgent:
             if not api_key:
                 raise ValueError("API_KEY environment variable is required")
             
-            # Create tools for different therapy domains
-            anxiety_tools = [
-                await function_to_schema(create_anxiety_relief_composition, func_name="create_anxiety_relief_composition", enhance_description=True),
-                await function_to_schema(create_mood_regulation_playlist, func_name="create_mood_regulation_playlist", enhance_description=True),
-            ]
-            
-            cognitive_tools = [
-                await function_to_schema(design_cognitive_enhancement_music, func_name="design_cognitive_enhancement_music", enhance_description=True),
-            ]
-            
-            wellness_tools = [
-                await function_to_schema(develop_sleep_therapy_soundscape, func_name="develop_sleep_therapy_soundscape", enhance_description=True),
-                await function_to_schema(create_pain_management_audio, func_name="create_pain_management_audio", enhance_description=True),
-            ]
-            
-            # Create response agent
-            response_agent = await function_to_schema(music_therapy_agent, func_name="music_therapy_agent", enhance_description=True)
-            
-            # Create main orchestrator with routing capability
-            all_tools = anxiety_tools + cognitive_tools + wellness_tools + [response_agent]
-            main_orchestrator = create_orchestrator(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=all_tools
-            )
-            
-            # Create specialized LLM execution nodes
-            anxiety_therapist = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=anxiety_tools
-            )
-            
-            cognitive_specialist = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=cognitive_tools
-            )
-            
-            wellness_therapist = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=wellness_tools
-            )
-            
             # Create workflow graph
-            execution_graph = WorkflowGraph()
+            workflow = WorkflowGraph()
             
-            # Add main orchestrator
-            execution_graph.add_orchestrator_node("main_orchestrator", main_orchestrator)
+            # Create tool schemas for orchestrator
+            tools = [
+                await function_to_schema(create_anxiety_relief_composition, func_name="create_anxiety_relief_composition", enhance_description=True),
+                await function_to_schema(design_cognitive_enhancement_music, func_name="design_cognitive_enhancement_music", enhance_description=True),
+                await function_to_schema(create_mood_regulation_playlist, func_name="create_mood_regulation_playlist", enhance_description=True),
+                await function_to_schema(develop_sleep_therapy_soundscape, func_name="develop_sleep_therapy_soundscape", enhance_description=True),
+            ]
             
-            # Add LLM execution nodes
-            execution_graph.add_node("anxiety_therapist", anxiety_therapist)
-            execution_graph.add_node("cognitive_specialist", cognitive_specialist)
-            execution_graph.add_node("wellness_therapist", wellness_therapist)
+            # Create orchestrator agent
+            orchestrator_agent = create_orchestrator(
+                api_key=api_key,
+                base_url=base_url,
+                llm_model="gpt-4",
+                tools=tools
+            )
+            
+            # Add orchestrator node
+            workflow.add_orchestrator_node("music_therapy_orchestrator", orchestrator_agent)
             
             # Add tool nodes
-            execution_graph.add_node("anxiety_composer", create_anxiety_relief_composition)
-            execution_graph.add_node("mood_regulator", create_mood_regulation_playlist)
-            execution_graph.add_node("cognitive_enhancer", design_cognitive_enhancement_music)
-            execution_graph.add_node("sleep_therapist", develop_sleep_therapy_soundscape)
-            execution_graph.add_node("pain_manager", create_pain_management_audio)
+            workflow.add_node("create_anxiety_relief_composition", create_anxiety_relief_composition)
+            workflow.add_node("design_cognitive_enhancement_music", design_cognitive_enhancement_music)
+            workflow.add_node("create_mood_regulation_playlist", create_mood_regulation_playlist)
+            workflow.add_node("develop_sleep_therapy_soundscape", develop_sleep_therapy_soundscape)
             
-            # Connect orchestrator to specialized agents
-            execution_graph.add_edge("__start__", "main_orchestrator")
-            execution_graph.add_edge("main_orchestrator", "anxiety_therapist")
-            execution_graph.add_edge("main_orchestrator", "cognitive_specialist")
-            execution_graph.add_edge("main_orchestrator", "wellness_therapist")
+            # Connect workflow
+            workflow.add_edge("__start__", "music_therapy_orchestrator")
+            workflow.add_edge("music_therapy_orchestrator", "create_anxiety_relief_composition")
+            workflow.add_edge("music_therapy_orchestrator", "design_cognitive_enhancement_music")
+            workflow.add_edge("music_therapy_orchestrator", "create_mood_regulation_playlist")
+            workflow.add_edge("music_therapy_orchestrator", "develop_sleep_therapy_soundscape")
             
-            # Connect specialized agents to their tools
-            execution_graph.add_edge("anxiety_therapist", "anxiety_composer")
-            execution_graph.add_edge("anxiety_therapist", "mood_regulator")
-            execution_graph.add_edge("cognitive_specialist", "cognitive_enhancer")
-            execution_graph.add_edge("wellness_therapist", "sleep_therapist")
-            execution_graph.add_edge("wellness_therapist", "pain_manager")
+            # All tools lead to end
+            workflow.add_edge("create_anxiety_relief_composition", "__end__")
+            workflow.add_edge("design_cognitive_enhancement_music", "__end__")
+            workflow.add_edge("create_mood_regulation_playlist", "__end__")
+            workflow.add_edge("develop_sleep_therapy_soundscape", "__end__")
             
-            # Add human interaction
-            execution_graph.add_human_in_the_loop("main_orchestrator")
-            
-            return execution_graph
+            return workflow
             
         except Exception as e:
             print(f"Error creating workflow: {e}")
@@ -733,36 +458,9 @@ class MusicTherapyAgent:
                 "scenario": "Sleep therapy for insomnia",
                 "prompt": "Develop a sleep therapy soundscape for someone with chronic insomnia. They need 8 hours of sleep support and have issues with noise and light sensitivity.",
                 "category": "sleep_therapy"
-            },
-            {
-                "scenario": "Pain management for chronic pain",
-                "prompt": "Create a 25-minute pain management audio session for someone with chronic back pain at level 7/10. They need help managing daily pain flares.",
-                "category": "pain_management"
             }
         ]
-    
-    async def provide_music_therapy(self, scenario: str) -> Dict[str, Any]:
-        """Provide personalized music therapy intervention."""
-        try:
-            workflow = await self.create_workflow()
-            compiled_graph = workflow.compile()
-            
-            result = await compiled_graph.execute(initial_input=scenario)
-            
-            return {
-                "agent": self.name,
-                "scenario": scenario,
-                "therapy_plan": result,
-                "status": "success"
-            }
-        except Exception as e:
-            return {
-                "agent": self.name,
-                "scenario": scenario,
-                "error": str(e),
-                "status": "error"
-            }
 
 
 # Export the agent
-__all__ = ["MusicTherapyAgent", "music_therapy_agent"] 
+__all__ = ["MusicTherapyAgent"]

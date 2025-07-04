@@ -39,7 +39,7 @@ class LLMConfig:
     api_key: str
     base_url: Optional[str] = None
     temperature: float = 0.7
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_p: float = 1.0
     stream: bool = False
     exponential_backoff_retry: bool = False

@@ -1,5 +1,4 @@
-from typing import Callable
-from types import AsyncGeneratorType
+from typing import Callable, Union
 from .base_node import BaseNode
 from orion.agent_core.models import ToolCall
 import logging
@@ -56,7 +55,7 @@ class OrchestratorNode(BaseNode):
 
         return "Previous execution history:\n" + "\n".join(meaningful_entries)
 
-    async def compute(self, input_data, *args, **kwargs) -> ToolCall:
+    async def compute(self, input_data, *args, **kwargs) -> Union[str, ToolCall]:
         """
         Execute the orchestrator function for task routing.
         Returns ToolCall object for routing decisions.
@@ -78,15 +77,22 @@ Route this task to the appropriate tool."""
 
             # Execute orchestrator function
             func_output = await self.node_func(prompt=enhanced_context)
-
+            print("-" * 100)
+            print(f"Orchestrator '{self.name}' output: {func_output}")
+            print("-" * 100)
             # Ensure we return a ToolCall object
             if isinstance(func_output, ToolCall):
                 logger.debug(f"Orchestrator routing to: {func_output.tool_name}")
                 return func_output
             else:
-                # Fallback if orchestrator doesn't return ToolCall
-                logger.warning(f"Orchestrator '{self.name}' returned {type(func_output)} instead of ToolCall")
-                return ToolCall(tool_name="default", arguments={"input": str(func_output)})
+                # Handle string outputs as feedback/reasoning
+                if isinstance(func_output, str):
+                    # String outputs are treated as feedback that should trigger plan revision
+                    return func_output
+                else:
+                    # Fallback if orchestrator doesn't return ToolCall or string
+                    logger.warning(f"Orchestrator '{self.name}' returned {type(func_output)} instead of ToolCall")
+                    return ToolCall(tool_name="default", arguments={"input": str(func_output)})
 
         except Exception as e:
             logger.error(f"OrchestratorNode '{self.name}' failed to compute: {e}")

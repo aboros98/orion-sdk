@@ -68,6 +68,7 @@ class ExecutionMemory:
     def clear_execution_traces(self) -> None:
         """Clear all execution steps."""
         self._exec_steps.clear()
+        self.summary.clear()
 
     def add_exec_step(
         self,

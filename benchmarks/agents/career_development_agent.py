@@ -14,10 +14,47 @@ from orion.graph_core import WorkflowGraph
 from orion.tool_registry import tool
 
 
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 # Career Development Tools
 @tool
 def analyze_job_market(job_title: str, location: str, experience_level: str) -> Dict[str, Any]:
-    """Analyze real job market data for a specific role and location."""
+    """
+    Analyze real-time job market data including salary insights, skill demands, and market trends.
+    
+    This tool provides comprehensive job market analysis using real job posting data to help
+    users understand current market conditions, salary ranges, and in-demand skills for their target role.
+    
+    Args:
+        job_title (str): The job title or role to analyze. Should be specific and commonly used.
+                        Examples: "Software Engineer", "Data Scientist", "Product Manager",
+                                 "Marketing Specialist", "Financial Analyst"
+        location (str): Geographic location for the job search. Can be city, state, or "remote".
+                       Examples: "San Francisco", "New York", "Austin", "remote"
+        experience_level (str): Experience level filter for the analysis.
+                               Options: "entry", "mid", "senior", "lead", "executive"
+    
+    Returns:
+        Dict[str, Any]: Comprehensive job market analysis including:
+            - job_title: Analyzed job title
+            - location: Target location
+            - experience_level: Experience level analyzed
+            - total_jobs_found: Number of job postings found
+            - salary_insights: Average salary, salary range, and data points
+            - top_skills_demanded: Most frequently requested skills with frequency counts
+            - top_hiring_companies: Companies with the most job postings
+            - market_demand: Overall market demand assessment (High/Medium/Low)
+            - job_examples: Sample job postings with details
+    
+    Example:
+        >>> result = analyze_job_market("Data Scientist", "San Francisco", "mid")
+        >>> print(result['market_demand'])
+        'High'
+    """
     try:
         # Use real job search APIs (JSearch/RapidAPI for Indeed/LinkedIn data)
         headers = {
@@ -128,7 +165,38 @@ def analyze_job_market(job_title: str, location: str, experience_level: str) -> 
 
 @tool
 def get_salary_benchmarks(job_title: str, location: str, years_experience: int) -> Dict[str, Any]:
-    """Get real salary benchmarks using multiple data sources."""
+    """
+    Get comprehensive salary benchmarks and compensation data for career planning and negotiation.
+    
+    This tool provides detailed salary information including base salary ranges, total compensation,
+    career progression paths, and market positioning to help users make informed career decisions.
+    
+    Args:
+        job_title (str): The job title or role for salary analysis. Should be specific and industry-standard.
+                        Examples: "Senior Software Engineer", "Data Scientist", "Product Manager",
+                                 "Marketing Director", "Financial Analyst"
+        location (str): Geographic location affecting salary calculations. Can be city, state, or "remote".
+                       Examples: "San Francisco", "New York", "Austin", "remote"
+        years_experience (int): Number of years of relevant professional experience.
+                              Range: 0-20+ years. Affects salary calculations and career progression.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive salary analysis including:
+            - job_title: Analyzed job title
+            - location: Target location
+            - years_experience: Experience level
+            - salary_range: Min, median, max, and percentile breakdowns
+            - total_compensation: Base salary, bonus, stock options, and benefits value
+            - market_position: Competitive positioning assessment
+            - career_progression: Salary projections for next career levels
+            - data_source: Source of salary data
+            - last_updated: When the data was last updated
+    
+    Example:
+        >>> result = get_salary_benchmarks("Software Engineer", "San Francisco", 5)
+        >>> print(result['salary_range']['median'])
+        150000
+    """
     try:
         # Use Glassdoor-style API data
         salary_data = {}
@@ -206,7 +274,35 @@ def get_salary_benchmarks(job_title: str, location: str, years_experience: int) 
 
 @tool
 def analyze_resume_optimization(resume_text: str, target_job_description: str) -> Dict[str, Any]:
-    """Analyze resume against job description and provide optimization recommendations."""
+    """
+    Analyze resume against job description and provide comprehensive optimization recommendations.
+    
+    This tool performs detailed resume analysis including keyword matching, structure assessment,
+    and ATS compatibility to help users optimize their resume for specific job applications.
+    
+    Args:
+        resume_text (str): Complete resume text content. Should include all sections like
+                          experience, education, skills, and summary. Minimum recommended: 200 words.
+        target_job_description (str): Job description text to match against. Should include
+                                    requirements, responsibilities, and desired qualifications.
+                                    Used for keyword analysis and skill matching.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive resume optimization analysis including:
+            - match_score: Percentage match between resume and job description (0-100)
+            - skills_analysis: Matching skills, missing skills, and total requirements
+            - resume_structure: Assessment of resume sections (contact, summary, experience, etc.)
+            - content_analysis: Word count, action verb analysis, and improvement areas
+            - optimization_recommendations: Specific suggestions for improvement
+            - ats_compatibility: Applicant Tracking System compatibility score and tips
+    
+    Example:
+        >>> resume = "Experienced software engineer with Python and AWS skills..."
+        >>> job_desc = "Looking for Python developer with AWS experience..."
+        >>> result = analyze_resume_optimization(resume, job_desc)
+        >>> print(result['match_score'])
+        85.5
+    """
     try:
         # Real text analysis using NLP techniques
         resume_lower = resume_text.lower()
@@ -305,7 +401,36 @@ def analyze_resume_optimization(resume_text: str, target_job_description: str) -
 
 @tool
 def create_interview_preparation(job_title: str, company_name: str, interview_type: str) -> Dict[str, Any]:
-    """Create comprehensive interview preparation materials."""
+    """
+    Create comprehensive interview preparation materials including questions, company research, and strategies.
+    
+    This tool provides detailed interview preparation resources including company research,
+    role-specific questions, behavioral scenarios, and strategic advice for different interview types.
+    
+    Args:
+        job_title (str): The specific job title or role being interviewed for. Should be exact
+                        to generate relevant questions and preparation materials.
+                        Examples: "Senior Software Engineer", "Product Manager", "Data Scientist"
+        company_name (str): Name of the company conducting the interview. Used for company research,
+                           culture analysis, and company-specific preparation.
+                           Examples: "Google", "Microsoft", "Startup Inc."
+        interview_type (str): Type of interview to prepare for. Affects question types and strategies.
+                            Options: "behavioral", "technical", "case_study", "panel", "phone_screen"
+    
+    Returns:
+        Dict[str, Any]: Comprehensive interview preparation including:
+            - company_research: Company information, culture, recent news, and values
+            - interview_questions: Role-specific questions organized by category
+            - preparation_strategies: Interview-specific tips and strategies
+            - common_scenarios: Typical interview situations and how to handle them
+            - follow_up_questions: Questions to ask the interviewer
+            - preparation_timeline: Recommended preparation schedule
+    
+    Example:
+        >>> result = create_interview_preparation("Software Engineer", "Google", "technical")
+        >>> print(len(result['interview_questions']['technical']))
+        15
+    """
     try:
         # Real company research (would use APIs like Clearbit, LinkedIn, etc.)
         company_info = {}
@@ -462,7 +587,39 @@ def create_interview_preparation(job_title: str, company_name: str, interview_ty
 
 @tool
 def assess_career_path_progression(current_role: str, target_role: str, current_skills: List[str]) -> Dict[str, Any]:
-    """Assess career path and provide progression roadmap."""
+    """
+    Assess career progression path and create detailed roadmap for career advancement.
+    
+    This tool analyzes the gap between current and target roles, identifies skill requirements,
+    and provides a comprehensive development plan with timelines and actionable recommendations.
+    
+    Args:
+        current_role (str): Current job title or role. Should be specific to determine current level.
+                           Examples: "Software Engineer", "Data Analyst", "Product Manager"
+        target_role (str): Desired job title or role to progress toward. Should be realistic
+                          next step or long-term goal.
+                          Examples: "Senior Software Engineer", "Data Scientist", "Product Lead"
+        current_skills (List[str]): List of current skills, competencies, and experiences.
+                                  Should include technical skills, soft skills, and domain knowledge.
+                                  Examples: ["Python", "Leadership", "Machine Learning", "Project Management"]
+    
+    Returns:
+        Dict[str, Any]: Comprehensive career progression analysis including:
+            - current_role/target_role: Input roles for reference
+            - career_track: Identified career path (software, data, product, etc.)
+            - current_level/target_level: Seniority levels (junior, mid, senior, lead, executive)
+            - progression_steps: Detailed roadmap with roles, timelines, and requirements
+            - estimated_timeline: Overall time estimate for progression
+            - skill_gap_analysis: Current skills vs. required skills for target role
+            - development_plan: Actionable recommendations for skill development
+            - success_metrics: Key indicators of progression success
+    
+    Example:
+        >>> skills = ["Python", "SQL", "Data Analysis"]
+        >>> result = assess_career_path_progression("Data Analyst", "Data Scientist", skills)
+        >>> print(result['estimated_timeline'])
+        '2-4 years'
+    """
     try:
         # Define career progression maps
         career_paths = {

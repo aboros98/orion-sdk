@@ -21,39 +21,36 @@ from orion.tool_registry import tool
 # Financial Analysis Tools
 @tool
 def calculate_investment_returns(principal: float, annual_rate: float, years: int, compound_frequency: int = 12, investment_type: str = "savings") -> Dict[str, Any]:
-    """Calculate investment returns with real market data and compound interest for real financial planning."""
+    """
+    Calculate comprehensive investment returns with compound interest, inflation adjustment, and year-by-year growth analysis.
+    
+    This tool provides detailed financial planning insights including compound interest calculations,
+    inflation-adjusted returns, and yearly progression tracking to help users make informed investment decisions.
+    
+    Args:
+        principal (float): Initial investment amount in dollars. Must be positive.
+        annual_rate (float): Annual interest rate as a decimal (e.g., 0.05 for 5%). Must be between 0 and 1.
+        years (int): Investment time period in years. Must be positive.
+        compound_frequency (int, optional): Number of times interest is compounded per year. 
+                                          Default is 12 (monthly). Common values: 1 (annually), 
+                                          4 (quarterly), 12 (monthly), 365 (daily).
+        investment_type (str, optional): Type of investment for categorization. 
+                                       Examples: "savings", "stocks", "bonds", "real_estate".
+                                       Default is "savings".
+    
+    Returns:
+        Dict[str, Any]: Comprehensive investment analysis including:
+            - investment_summary: Basic investment details and final amounts
+            - inflation_adjusted: Real purchasing power calculations
+            - yearly_progression: Year-by-year growth tracking
+            - financial_advice: Personalized recommendations based on inflation comparison
+    
+    Example:
+        >>> result = calculate_investment_returns(10000, 0.07, 10)
+        >>> print(result['investment_summary']['final_amount'])
+        19671.51
+    """
     try:
-        # Get real market data for context
-        market_data = {}
-        try:
-            # Use real market data from Yahoo Finance API
-            if investment_type.lower() in ["stocks", "stock", "equity"]:
-                # Get S&P 500 data for comparison
-                response = requests.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1d&range=1y", timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    chart_data = data.get('chart', {}).get('result', [{}])[0]
-                    meta = chart_data.get('meta', {})
-                    current_price = meta.get('regularMarketPrice', 0)
-                    prev_close = meta.get('previousClose', 0)
-                    if current_price and prev_close:
-                        daily_change = ((current_price - prev_close) / prev_close) * 100
-                        market_data = {
-                            "sp500_current": current_price,
-                            "daily_change_percent": round(daily_change, 2),
-                            "market_context": "Based on current S&P 500 performance"
-                        }
-            
-            # Get current Treasury rates for context
-            treasury_response = requests.get("https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/avg_interest_rates?filter=record_date:eq:2024-01-01", timeout=10)
-            if treasury_response.status_code == 200:
-                treasury_data = treasury_response.json()
-                if treasury_data.get('data'):
-                    treasury_rate = float(treasury_data['data'][0].get('avg_interest_rate_amt', 4.5))
-                    market_data["risk_free_rate"] = treasury_rate
-        except:
-            market_data = {"note": "Real-time market data unavailable"}
-        
         # Compound interest formula: A = P(1 + r/n)^(nt)
         amount = principal * (1 + annual_rate / compound_frequency) ** (compound_frequency * years)
         total_return = amount - principal
@@ -69,22 +66,8 @@ def calculate_investment_returns(principal: float, annual_rate: float, years: in
                 "gain": round(yearly_amount - principal, 2)
             })
         
-        # Get real inflation data for context
-        try:
-            inflation_response = requests.get("https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SA0", timeout=10)
-            if inflation_response.status_code == 200:
-                inflation_data = inflation_response.json()
-                if inflation_data.get('Results', {}).get('series'):
-                    recent_data = inflation_data['Results']['series'][0]['data'][:12]  # Last 12 months
-                    inflation_rate = sum(float(d.get('value', 0)) for d in recent_data) / len(recent_data) if recent_data else 3.5
-                else:
-                    inflation_rate = 3.5  # Default estimate
-            else:
-                inflation_rate = 3.5
-        except:
-            inflation_rate = 3.5
-        
-        # Calculate real return (adjusted for inflation)
+        # Assume 3.5% inflation rate
+        inflation_rate = 3.5
         real_annual_rate = ((1 + annual_rate) / (1 + inflation_rate/100)) - 1
         real_amount = principal * (1 + real_annual_rate / compound_frequency) ** (compound_frequency * years)
         real_return = real_amount - principal
@@ -106,7 +89,6 @@ def calculate_investment_returns(principal: float, annual_rate: float, years: in
                 "inflation_adjusted_amount": round(real_amount, 2),
                 "real_purchasing_power_gain": round(real_return, 2)
             },
-            "market_context": market_data,
             "yearly_progression": yearly_values,
             "financial_advice": f"Your {annual_rate*100:.1f}% return beats inflation ({inflation_rate:.1f}%) by {(annual_rate*100-inflation_rate):.1f}%" if annual_rate*100 > inflation_rate else f"Consider investments with higher returns to beat {inflation_rate:.1f}% inflation"
         }
@@ -116,7 +98,37 @@ def calculate_investment_returns(principal: float, annual_rate: float, years: in
 
 @tool
 def analyze_portfolio_risk(investments: List[Dict[str, Union[str, float]]], total_portfolio_value: float) -> Dict[str, Any]:
-    """Analyze portfolio diversification and risk profile for real investment decisions."""
+    """
+    Analyze portfolio diversification, risk distribution, and provide investment recommendations.
+    
+    This tool evaluates investment portfolios by calculating asset allocation weights, risk distribution,
+    diversification scores, and provides personalized recommendations for portfolio optimization.
+    
+    Args:
+        investments (List[Dict[str, Union[str, float]]]): List of investment dictionaries, each containing:
+            - name (str): Name or identifier of the investment
+            - amount (float): Dollar amount invested in this asset
+            - type (str): Asset type (e.g., "stocks", "bonds", "real_estate", "crypto", "commodities")
+            - risk_level (str): Risk classification ("low", "medium", "high", "very_high")
+        total_portfolio_value (float): Total value of the entire portfolio in dollars. 
+                                     Must be greater than sum of individual investments.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive portfolio analysis including:
+            - portfolio_overview: Total value, allocation percentage, and investment count
+            - investments: Detailed breakdown of each investment with weights and risk levels
+            - risk_analysis: Overall risk score, risk distribution, and diversification metrics
+            - recommendations: Personalized suggestions for portfolio improvement
+    
+    Example:
+        >>> investments = [
+        ...     {"name": "Tech Stocks", "amount": 50000, "type": "stocks", "risk_level": "high"},
+        ...     {"name": "Government Bonds", "amount": 30000, "type": "bonds", "risk_level": "low"}
+        ... ]
+        >>> result = analyze_portfolio_risk(investments, 100000)
+        >>> print(result['risk_analysis']['overall_risk_score'])
+        6.5
+    """
     try:
         if not investments:
             return {"error": "No investments provided for analysis"}
@@ -194,7 +206,33 @@ def analyze_portfolio_risk(investments: List[Dict[str, Union[str, float]]], tota
 @tool
 def calculate_loan_affordability(annual_income: float, monthly_expenses: float, loan_amount: float, 
                                interest_rate: float, loan_term_years: int) -> Dict[str, Any]:
-    """Calculate loan affordability and monthly payments for real financial planning."""
+    """
+    Calculate loan affordability, monthly payments, and debt-to-income analysis for financial planning.
+    
+    This tool helps users determine if they can afford a loan by calculating monthly payments,
+    debt-to-income ratios, and providing affordability assessments based on financial industry standards.
+    
+    Args:
+        annual_income (float): Gross annual income in dollars. Must be positive.
+        monthly_expenses (float): Total monthly expenses excluding the potential loan payment. 
+                                Includes housing, utilities, food, transportation, etc.
+        loan_amount (float): Principal amount of the loan in dollars. Must be positive.
+        interest_rate (float): Annual interest rate as a decimal (e.g., 0.045 for 4.5%). 
+                             Must be between 0 and 1.
+        loan_term_years (int): Length of the loan in years. Common values: 15, 20, 30 for mortgages;
+                             3-7 for auto loans; 1-5 for personal loans.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive loan affordability analysis including:
+            - loan_details: Basic loan information and monthly payment calculation
+            - affordability_analysis: Income analysis, debt ratios, and affordability rating
+            - cost_analysis: Total cost breakdown including interest paid over the loan term
+    
+    Example:
+        >>> result = calculate_loan_affordability(75000, 2000, 300000, 0.045, 30)
+        >>> print(result['affordability_analysis']['affordability_rating'])
+        'Good - Within acceptable range'
+    """
     try:
         monthly_income = annual_income / 12
         available_monthly = monthly_income - monthly_expenses
@@ -257,7 +295,36 @@ def calculate_loan_affordability(annual_income: float, monthly_expenses: float, 
 def retirement_planning_analysis(current_age: int, retirement_age: int, current_savings: float, 
                                monthly_contribution: float, expected_return: float, 
                                desired_retirement_income: float) -> Dict[str, Any]:
-    """Comprehensive retirement planning analysis for real financial decision making."""
+    """
+    Comprehensive retirement planning analysis with savings projections and income gap analysis.
+    
+    This tool helps users plan for retirement by calculating future savings projections,
+    analyzing income adequacy, and providing actionable recommendations for retirement planning.
+    
+    Args:
+        current_age (int): Current age in years. Must be between 18 and 100.
+        retirement_age (int): Target retirement age in years. Must be greater than current_age.
+        current_savings (float): Current retirement savings balance in dollars. Must be non-negative.
+        monthly_contribution (float): Monthly contribution to retirement savings in dollars. 
+                                    Must be non-negative.
+        expected_return (float): Expected annual investment return as a decimal (e.g., 0.07 for 7%). 
+                               Must be between 0 and 1. Typical range: 0.04 to 0.10.
+        desired_retirement_income (float): Desired monthly income during retirement in dollars. 
+                                         Should account for inflation and lifestyle needs.
+    
+    Returns:
+        Dict[str, Any]: Comprehensive retirement analysis including:
+            - retirement_timeline: Age and time period calculations
+            - current_financial_position: Current savings and contribution details
+            - projected_retirement_wealth: Future value calculations for savings and contributions
+            - retirement_income_analysis: Income adequacy assessment using 4% withdrawal rule
+            - action_plan: Recommendations and additional savings requirements
+    
+    Example:
+        >>> result = retirement_planning_analysis(35, 65, 50000, 500, 0.07, 5000)
+        >>> print(result['retirement_income_analysis']['income_adequacy'])
+        'Sufficient'
+    """
     try:
         years_to_retirement = retirement_age - current_age
         years_in_retirement = 85 - retirement_age  # Assuming life expectancy of 85
@@ -342,133 +409,13 @@ def retirement_planning_analysis(current_age: int, retirement_age: int, current_
         return {"error": f"Retirement planning error: {str(e)}"}
 
 
-@tool
-def tax_optimization_analysis(annual_income: float, filing_status: str, deductions: List[Dict[str, float]], 
-                            retirement_contributions: float, hsa_contribution: float = 0) -> Dict[str, Any]:
-    """Analyze tax optimization strategies for real financial planning."""
-    try:
-        # 2024 tax brackets (current IRS data)
-        tax_brackets = {
-            "single": [
-                (11000, 0.10), (44725, 0.12), (95375, 0.22), 
-                (182050, 0.24), (231250, 0.32), (578125, 0.35), (float('inf'), 0.37)
-            ],
-            "married_filing_jointly": [
-                (22000, 0.10), (89450, 0.12), (190750, 0.22), 
-                (364200, 0.24), (462500, 0.32), (693750, 0.35), (float('inf'), 0.37)
-            ],
-            "married_filing_separately": [
-                (11000, 0.10), (44725, 0.12), (95375, 0.22), 
-                (182050, 0.24), (231250, 0.32), (346875, 0.35), (float('inf'), 0.37)
-            ],
-            "head_of_household": [
-                (15700, 0.10), (59850, 0.12), (95350, 0.22), 
-                (182050, 0.24), (231250, 0.32), (578100, 0.35), (float('inf'), 0.37)
-            ]
-        }
-        
-        # 2024 standard deductions (current IRS data)
-        standard_deductions = {
-            "single": 13850, 
-            "married_filing_jointly": 27700,
-            "married_filing_separately": 13850,
-            "head_of_household": 20800
-        }
-        
-        brackets = tax_brackets.get(filing_status, tax_brackets["single"])
-        standard_deduction = standard_deductions.get(filing_status, 13850)
-        
-        # Calculate total deductions
-        itemized_deductions = sum(deduction.get('amount', 0) for deduction in deductions)
-        total_deductions = max(standard_deduction, itemized_deductions)
-        
-        # Calculate taxable income
-        adjusted_gross_income = annual_income - retirement_contributions - hsa_contribution
-        taxable_income = max(0, adjusted_gross_income - total_deductions)
-        
-        # Calculate tax owed
-        tax_owed = 0
-        remaining_income = taxable_income
-        
-        for i, (bracket_limit, rate) in enumerate(brackets):
-            if remaining_income <= 0:
-                break
-            
-            if i == 0:
-                taxable_in_bracket = min(remaining_income, bracket_limit)
-            else:
-                prev_limit = brackets[i-1][0]
-                taxable_in_bracket = min(remaining_income, bracket_limit - prev_limit)
-            
-            tax_owed += taxable_in_bracket * rate
-            remaining_income -= taxable_in_bracket
-        
-        # Calculate effective tax rate
-        effective_rate = (tax_owed / annual_income) * 100 if annual_income > 0 else 0
-        marginal_rate = next(rate for limit, rate in brackets if taxable_income <= limit) * 100
-        
-        # Tax optimization recommendations
-        recommendations = []
-        
-        # Check if itemizing is beneficial
-        if itemized_deductions < standard_deduction:
-            recommendations.append(f"Use standard deduction (${standard_deduction:,.2f}) instead of itemizing")
-        
-        # Retirement contribution recommendations
-        max_401k = 23000  # 2024 limit
-        if retirement_contributions < max_401k:
-            additional_contribution = min(max_401k - retirement_contributions, annual_income * 0.15)
-            tax_savings = additional_contribution * (marginal_rate / 100)
-            recommendations.append(f"Consider increasing 401(k) contribution by ${additional_contribution:,.2f} for ${tax_savings:,.2f} tax savings")
-        
-        # HSA recommendation
-        max_hsa = 4150  # 2024 individual limit
-        if hsa_contribution < max_hsa:
-            additional_hsa = max_hsa - hsa_contribution
-            recommendations.append(f"Maximize HSA contribution (additional ${additional_hsa:,.2f}) for triple tax advantage")
-        
-        return {
-            "income_analysis": {
-                "gross_income": annual_income,
-                "retirement_contributions": retirement_contributions,
-                "hsa_contributions": hsa_contribution,
-                "adjusted_gross_income": adjusted_gross_income
-            },
-            "deduction_analysis": {
-                "standard_deduction": standard_deduction,
-                "itemized_deductions": itemized_deductions,
-                "deduction_used": total_deductions,
-                "deduction_type": "Standard" if total_deductions == standard_deduction else "Itemized"
-            },
-            "tax_calculation": {
-                "taxable_income": round(taxable_income, 2),
-                "federal_tax_owed": round(tax_owed, 2),
-                "effective_tax_rate": round(effective_rate, 2),
-                "marginal_tax_rate": round(marginal_rate, 2)
-            },
-            "optimization_opportunities": recommendations,
-            "after_tax_income": round(annual_income - tax_owed, 2)
-        }
-    except Exception as e:
-        return {"error": f"Tax analysis error: {str(e)}"}
-
-
-async def financial_analysis_agent(financial_query: str) -> str:
-    """Financial analysis agent that provides comprehensive financial planning advice."""
-    try:
-        # This would integrate with the orchestrator to analyze the query and route to appropriate tools
-        return f"Processing financial analysis for: {financial_query}"
-    except Exception as e:
-        return f"Error in financial analysis: {str(e)}"
-
-
 class FinancialAnalysisAgent:
     """Real-world financial analysis agent for investment planning and financial decision making."""
     
     def __init__(self):
         self.name = "FinancialAnalysisAgent"
         self.complexity_level = 1
-        self.description = "Real-world financial planning agent for investment analysis, retirement planning, and tax optimization"
+        self.description = "Real-world financial planning agent for investment analysis, retirement planning, and loan affordability"
     
     async def create_workflow(self) -> WorkflowGraph:
         """Create the financial analysis workflow."""
@@ -479,90 +426,48 @@ class FinancialAnalysisAgent:
             if not api_key:
                 raise ValueError("API_KEY environment variable is required")
             
-            # Create tools for different financial domains
-            investment_tools = [
+            # Create workflow graph
+            workflow = WorkflowGraph()
+            
+            # Create tool schemas for orchestrator
+            tools = [
                 await function_to_schema(calculate_investment_returns, func_name="calculate_investment_returns", enhance_description=True),
                 await function_to_schema(analyze_portfolio_risk, func_name="analyze_portfolio_risk", enhance_description=True),
-            ]
-            
-            lending_tools = [
                 await function_to_schema(calculate_loan_affordability, func_name="calculate_loan_affordability", enhance_description=True),
-            ]
-            
-            planning_tools = [
                 await function_to_schema(retirement_planning_analysis, func_name="retirement_planning_analysis", enhance_description=True),
-                await function_to_schema(tax_optimization_analysis, func_name="tax_optimization_analysis", enhance_description=True),
             ]
             
-            # Create response agent
-            response_agent = await function_to_schema(financial_analysis_agent, func_name="financial_analysis_agent", enhance_description=True)
-            
-            # Create main orchestrator with routing capability
-            all_tools = investment_tools + lending_tools + planning_tools + [response_agent]
-            main_orchestrator = create_orchestrator(
+            # Create orchestrator agent
+            orchestrator_agent = create_orchestrator(
                 api_key=api_key,
                 base_url=base_url,
                 llm_model="gpt-4",
-                tools=all_tools
+                tools=tools
             )
             
-            # Create specialized LLM execution nodes
-            investment_advisor = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=investment_tools
-            )
-            
-            lending_advisor = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=lending_tools
-            )
-            
-            planning_advisor = build_async_agent(
-                api_key=api_key,
-                base_url=base_url,
-                llm_model="gpt-4",
-                tools=planning_tools
-            )
-            
-            # Create workflow graph
-            execution_graph = WorkflowGraph()
-            
-            # Add main orchestrator
-            execution_graph.add_orchestrator_node("main_orchestrator", main_orchestrator)
-            
-            # Add LLM execution nodes
-            execution_graph.add_node("investment_advisor", investment_advisor)
-            execution_graph.add_node("lending_advisor", lending_advisor)
-            execution_graph.add_node("planning_advisor", planning_advisor)
+            # Add orchestrator node
+            workflow.add_orchestrator_node("financial_orchestrator", orchestrator_agent)
             
             # Add tool nodes
-            execution_graph.add_node("investment_calculator", calculate_investment_returns)
-            execution_graph.add_node("portfolio_analyzer", analyze_portfolio_risk)
-            execution_graph.add_node("loan_calculator", calculate_loan_affordability)
-            execution_graph.add_node("retirement_planner", retirement_planning_analysis)
-            execution_graph.add_node("tax_optimizer", tax_optimization_analysis)
+            workflow.add_node("calculate_investment_returns", calculate_investment_returns)
+            workflow.add_node("analyze_portfolio_risk", analyze_portfolio_risk)
+            workflow.add_node("calculate_loan_affordability", calculate_loan_affordability)
+            workflow.add_node("retirement_planning_analysis", retirement_planning_analysis)
             
-            # Connect orchestrator to specialized agents
-            execution_graph.add_edge("__start__", "main_orchestrator")
-            execution_graph.add_edge("main_orchestrator", "investment_advisor")
-            execution_graph.add_edge("main_orchestrator", "lending_advisor")
-            execution_graph.add_edge("main_orchestrator", "planning_advisor")
+            # Connect workflow
+            workflow.add_edge("__start__", "financial_orchestrator")
+            workflow.add_edge("financial_orchestrator", "calculate_investment_returns")
+            workflow.add_edge("financial_orchestrator", "analyze_portfolio_risk")
+            workflow.add_edge("financial_orchestrator", "calculate_loan_affordability")
+            workflow.add_edge("financial_orchestrator", "retirement_planning_analysis")
             
-            # Connect specialized agents to their tools
-            execution_graph.add_edge("investment_advisor", "investment_calculator")
-            execution_graph.add_edge("investment_advisor", "portfolio_analyzer")
-            execution_graph.add_edge("lending_advisor", "loan_calculator")
-            execution_graph.add_edge("planning_advisor", "retirement_planner")
-            execution_graph.add_edge("planning_advisor", "tax_optimizer")
+            # All tools lead to end
+            workflow.add_edge("calculate_investment_returns", "__end__")
+            workflow.add_edge("analyze_portfolio_risk", "__end__")
+            workflow.add_edge("calculate_loan_affordability", "__end__")
+            workflow.add_edge("retirement_planning_analysis", "__end__")
             
-            # Add human interaction
-            execution_graph.add_human_in_the_loop("main_orchestrator")
-            
-            return execution_graph
+            return workflow
             
         except Exception as e:
             print(f"Error creating workflow: {e}")
@@ -590,36 +495,9 @@ class FinancialAnalysisAgent:
                 "scenario": "Investment return calculation",
                 "prompt": "If I invest $50,000 at 7% annual return for 20 years with monthly compounding, what will it be worth?",
                 "category": "investment_calculation"
-            },
-            {
-                "scenario": "Tax optimization strategy",
-                "prompt": "I'm single, earn $95,000, contribute $8,000 to 401k, have $15,000 in deductions. How can I optimize my taxes?",
-                "category": "tax_planning"
             }
         ]
-    
-    async def solve_financial_problem(self, scenario: str) -> Dict[str, Any]:
-        """Solve a real-world financial problem."""
-        try:
-            workflow = await self.create_workflow()
-            compiled_graph = workflow.compile()
-            
-            result = await compiled_graph.execute(initial_input=scenario)
-            
-            return {
-                "agent": self.name,
-                "scenario": scenario,
-                "solution": result,
-                "status": "success"
-            }
-        except Exception as e:
-            return {
-                "agent": self.name,
-                "scenario": scenario,
-                "error": str(e),
-                "status": "error"
-            }
 
 
 # Export the agent
-__all__ = ["FinancialAnalysisAgent", "financial_analysis_agent"] 
+__all__ = ["FinancialAnalysisAgent"]

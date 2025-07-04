@@ -1,4 +1,3 @@
-from re import A
 from typing import Dict, List, Optional, Any
 import logging
 import time
@@ -8,7 +7,6 @@ from .edges import BaseEdge, ConditionalEdge, Edge
 from orion.memory_core import ExecutionMemory
 from orion.memory_core.memory_retrieval_agent import MemoryRetrievalAgent
 from orion.agent_core.models import ToolCall
-from orion.agent_core.config import LLMConfig
 
 # Import for type checking
 from typing import TYPE_CHECKING
@@ -118,6 +116,10 @@ class CompiledGraph:
 
                 result = await self.nodes[current_node].compute(current_input)
 
+                # Check if result is orchestrator feedback - if so, return it directly
+                if isinstance(self.nodes[current_node], OrchestratorNode) and isinstance(result, str):
+                    return result
+
                 # Store result in memory UNLESS the node is an orchestrator (orchestrators are read-only)
                 if not isinstance(self.nodes[current_node], OrchestratorNode):
                     # Determine node type based on class name
@@ -178,6 +180,7 @@ class CompiledGraph:
             logger.info(f"Graph execution completed after {execution_count} iterations")
             logger.info(f"Execution path: {' -> '.join(execution_path)}")
             logger.info(f"Node retry counts: {node_retry_counts}")
+
             return final_output or "No output generated"
 
         except Exception as e:
@@ -291,21 +294,31 @@ class CompiledGraph:
 
             # Create condition mapping (tool_name -> node_name)
             condition_mapping = {node_name: node_name for node_name in target_nodes}
+            
+            # Add default route to handle fallback cases
+            condition_mapping["default"] = target_nodes[0]  # Route to first available node as default
 
             # Create orchestrator routing condition function
             def orchestrator_routing_condition(node_output) -> str:
                 """Route based on the tool_name from the orchestrator's ToolCall output."""
                 if isinstance(node_output, ToolCall):
-                    return node_output.tool_name
-                else:
-                    # Fallback: try to parse as string or return first available node
-                    if target_nodes:
-                        logger.warning(
-                            f"Orchestrator output is not ToolCall, routing to first available node: {target_nodes[0]}"
-                        )
-                        return target_nodes[0]
+                    tool_name = node_output.tool_name
+                    
+                    # Check if the tool_name is in our mapping
+                    if tool_name in condition_mapping:
+                        return tool_name
                     else:
-                        raise ValueError("No target nodes available for routing")
+                        # If tool_name not in mapping, use default
+                        logger.warning(
+                            f"Orchestrator tool_name '{tool_name}' not found in mapping, using default route"
+                        )
+                        return "default"
+                else:
+                    # Fallback: return default for non-ToolCall outputs
+                    logger.warning(
+                        f"Orchestrator output is not ToolCall (got {type(node_output)}), using default route"
+                    )
+                    return "default"
 
             # Replace regular edges with conditional edge
             self.edges[orchestrator_name] = [
@@ -313,6 +326,7 @@ class CompiledGraph:
             ]
 
             logger.info(f"Created conditional edges from orchestrator {orchestrator_name} to: {target_nodes}")
+            logger.debug(f"Condition mapping for {orchestrator_name}: {condition_mapping}")
 
     def _connect_orchestrators_to_memory(self):
         """Connect orchestrator nodes to ExecutionMemory (they need it for routing decisions)."""

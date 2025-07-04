@@ -10,14 +10,18 @@ from .agents import (
     FinancialAnalysisAgent,
     MarketIntelligenceAgent,
     MusicTherapyAgent,
-    NutritionalWellnessAgent
+    NutritionalWellnessAgent,
+    CareerDevelopmentAgent,
+    WebResearchAgent
 )
 
 __all__ = [
     "FinancialAnalysisAgent",
     "MarketIntelligenceAgent", 
     "MusicTherapyAgent",
-    "NutritionalWellnessAgent"
+    "NutritionalWellnessAgent",
+    "CareerDevelopmentAgent",
+    "WebResearchAgent"
 ]
 
 __version__ = "1.0.0" 

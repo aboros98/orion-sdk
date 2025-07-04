@@ -14,6 +14,10 @@ from orion.agent_core.utils import function_to_schema
 from orion.graph_core import WorkflowGraph
 from orion.tool_registry import tool
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Culinary and Nutrition Tools
 @tool
